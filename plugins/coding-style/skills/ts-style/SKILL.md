@@ -27,6 +27,12 @@ and manage deps with `yarn` — `yarn install`, `yarn add`, `yarn <script>`,
 Docker invoke `yarn install --immutable`. Don't mix in `npm`/`pnpm` — a stray
 `package-lock.json` is a bug.
 
+**Yarn does not run lifecycle scripts implicitly** (no `prepare`/`postinstall`
+on `yarn install` — deliberate, for supply-chain safety). So don't put one-time
+setup (e.g. git-hook wiring) in a `prepare` script expecting it to fire; it
+won't. Use an explicit, committed-executable `install-hooks.sh` run by hand
+after clone (see `sibling-app`).
+
 **Node version — always a `.node-version` file.** Every project (frontend or
 node) commits a `.node-version` pinning the node major, set to the **latest**
 release (node 26 as of 2026-05). `.node-version` over `.nvmrc` — broadest tool
