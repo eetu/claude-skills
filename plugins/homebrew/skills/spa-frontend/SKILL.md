@@ -89,12 +89,14 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
   (poll/SWR-ish: reactive `data/error/loading`, started/stopped from an
   `$effect`). No `swr`.
 - **Routing:** SvelteKit file-based routes. Single-view apps just use `+page.svelte`.
-- **Lint/format deltas (the one real gap):** the shared `eslint-config` has
-  `node`/`react` exports but **no Svelte preset**. Layer it: base config +
-  `eslint-plugin-svelte` v3 (`...svelte.configs.recommended`) with a `.svelte`
-  block setting `parserOptions.parser: ts.parser` + `svelteConfig`. Prettier
-  needs `prettier-plugin-svelte`. `typecheck` = `svelte-check` (not `tsc`).
-  Scripts otherwise identical (`dev/build/lint/format/typecheck/validate`).
+- **Lint/format:** use the shared **`eslint-config/svelte`** preset (added in
+  v2.1.0 — a factory, since it needs your `svelte.config.js`):
+  `import svelte from "eslint-config/svelte"; import svelteConfig from
+"./svelte.config.js"; export default svelte(svelteConfig);`. It bundles
+  `eslint-plugin-svelte` recommended + prettier + the TS parser wiring. Prettier
+  needs `prettier-plugin-svelte`; `typecheck` = `svelte-check` (not `tsc`).
+  Scripts otherwise identical (`dev/build/lint/format/typecheck/validate`). See
+  `coding-style:svelte` for the `.svelte` conventions.
 
 Dockerfile/CI deltas vs React: **none of substance** — the `frontend-build`
 stage is still just `yarn build`, and CI's frontend job runs the same

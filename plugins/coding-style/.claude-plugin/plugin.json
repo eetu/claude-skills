@@ -1,5 +1,5 @@
 {
   "name": "coding-style",
-  "description": "Cross-domain code + environment conventions, independent of any app stack: lint-format (language-agnostic tooling floor), ts-style (TS/JS house style), and fish (Eetu's default shell — POSIX gotchas). Future: python-style, git-conventions, etc.",
+  "description": "Cross-domain code + environment conventions, independent of any app stack: lint-format (language-agnostic tooling floor), ts-style (TS/JS house style), svelte (Svelte 5 + SvelteKit style), and fish (Eetu's default shell — POSIX gotchas). Future: python-style, git-conventions, etc.",
   "author": { "name": "Eetu Sutinen" }
 }

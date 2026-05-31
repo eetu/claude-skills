@@ -8,7 +8,7 @@
     {
       "name": "coding-style",
       "source": "./plugins/coding-style",
-      "description": "Cross-domain code + environment conventions, independent of any app stack: ts-style (TypeScript/JavaScript house style) and fish (Eetu's default shell)."
+      "description": "Cross-domain code + environment conventions, independent of any app stack: ts-style (TypeScript/JavaScript house style), svelte (Svelte 5 + SvelteKit style), and fish (Eetu's default shell)."
     },
     {
       "name": "homebrew",
