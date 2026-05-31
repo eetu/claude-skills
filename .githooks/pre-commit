@@ -1,0 +1,13 @@
+#!/bin/sh
+# Repo pre-commit gate. Wired via `core.hooksPath` (npm `prepare` script).
+# Mirrors CI: formatting, markdown lint, structural checks. Fail = no commit.
+set -e
+
+echo "pre-commit: prettier --check"
+yarn format
+
+echo "pre-commit: markdownlint"
+yarn lint
+
+echo "pre-commit: validate-skills"
+yarn validate:skills

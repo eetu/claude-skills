@@ -1,0 +1,20 @@
+{
+  "name": "claude-skills",
+  "private": true,
+  "type": "module",
+  "description": "Personal Claude Code skill marketplace.",
+  "scripts": {
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "lint": "markdownlint-cli2 \"**/*.md\"",
+    "lint:fix": "markdownlint-cli2 --fix \"**/*.md\"",
+    "validate:skills": "node scripts/validate-skills.mjs",
+    "validate": "yarn format && yarn lint && yarn validate:skills",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.18.1",
+    "prettier": "^3.6.2"
+  },
+  "packageManager": "yarn@4.15.0"
+}

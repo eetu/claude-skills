@@ -1,0 +1,16 @@
+{
+  // House markdown lint. Defaults, minus rules that fight our conventions:
+  "config": {
+    "default": true,
+    // We hand-wrap prose ~80 cols and let prettier preserve it — line length
+    // is a formatter concern, not a linter one.
+    "MD013": false,
+    // Skill files legitimately use inline HTML in fenced examples and tokens.
+    "MD033": false,
+    // First content line is often a blockquote callout, not an H1 (frontmatter
+    // carries the title). Don't force a leading heading.
+    "MD041": false,
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules"],
+}

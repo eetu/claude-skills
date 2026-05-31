@@ -1,1 +1,7 @@
 .DS_Store
+node_modules
+
+# Yarn (Berry) — pulled by corepack from the packageManager field; nothing committed
+.yarn/*
+.pnp.*
+yarn-error.log

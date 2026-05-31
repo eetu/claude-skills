@@ -59,9 +59,16 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
   in the generated `svelte.config.js`.
 - **Adapter = `@sveltejs/adapter-static` in pure-SPA mode.** No server logic (no
   `+*.server.ts` / `+server.ts`). Config:
+
   ```js
-  adapter: adapter({ pages: 'dist', assets: 'dist', fallback: 'index.html', strict: true })
+  adapter: adapter({
+    pages: "dist",
+    assets: "dist",
+    fallback: "index.html",
+    strict: true,
+  });
   ```
+
   Root `src/routes/+layout.ts`: `export const ssr = false; export const prerender = false;`
   - **`pages/assets: 'dist'`** matches the family convention (rust-axum's
     `STATIC_DIR` + the Dockerfile embed `dist/`; SvelteKit's default is `build/`).
@@ -72,6 +79,7 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
     tower-http `ServeDir.not_found_service` leaks a 404 status onto client
     routes — raspi-dashboard's backend instead serves the SPA via a small fs
     handler (200 + content-type + path-traversal guard). See rust-axum.
+
 - **Styling:** import `colors_and_type.css` globally in `+layout.svelte`
   (copied verbatim to `src/lib/styles/halo.css`); use `--halo-*` in component
   `<style>` blocks. A shared `Panel.svelte` card + `Wordmark.svelte` are the

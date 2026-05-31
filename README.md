@@ -3,12 +3,12 @@
 Personal Claude Code skill marketplace. Battle-tested house patterns so new
 projects follow them without re-deriving from scratch each time.
 
-Skills are **priors, not rails** — every skill records the *why* so you can tell
-when the *why* no longer holds and deviate deliberately.
+Skills are **priors, not rails** — every skill records the _why_ so you can tell
+when the _why_ no longer holds and deviate deliberately.
 
 ## Layout
 
-```
+```text
 .claude-plugin/marketplace.json      catalog
 plugins/
   homebrew/                          self-hosted homebrew web apps
@@ -43,7 +43,9 @@ In a project's `.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "eetu-skills": { "source": { "source": "github", "repo": "eetu/claude-skills" } }
+    "eetu-skills": {
+      "source": { "source": "github", "repo": "eetu/claude-skills" }
+    }
   },
   "enabledPlugins": { "homebrew@eetu-skills": true }
 }

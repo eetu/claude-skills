@@ -4,7 +4,7 @@ description: The shared visual identity for eetu's homebrew web apps (halo, chat
 user-invocable: true
 ---
 
-> **Priors, not rails.** This skill records the *why* behind the house look.
+> **Priors, not rails.** This skill records the _why_ behind the house look.
 > Fonts, accent, and the card/wordmark conventions are deliberately stable so
 > the family stays recognizable — don't churn them on a whim. But everything
 > else is open: new layouts, components, motion, and libraries are welcome, and
@@ -22,7 +22,7 @@ text**, the **layout/density**, and the **voice**.
 
 If invoked with no concrete task, ask what the user wants to build or design,
 ask a couple of questions, then act as an expert designer — output static HTML
-artifacts *or* production code as appropriate.
+artifacts _or_ production code as appropriate.
 
 ## Files in this skill
 

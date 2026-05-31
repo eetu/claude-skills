@@ -22,7 +22,7 @@ moments.
 
 Bash passes an unmatched `*.py` literally; **fish aborts the whole command**:
 
-```
+```text
 > grep -r --include=*.py foo .
 fish: No matches for wildcard '*.py'. See `help expand`.
 ```

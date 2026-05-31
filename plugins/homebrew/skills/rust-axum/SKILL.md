@@ -29,7 +29,7 @@ user-invocable: true
 
 ## Structure
 
-```
+```text
 Cargo.toml            # [workspace] resolver=2, members + [workspace.dependencies]
 backend/
   Cargo.toml
@@ -71,9 +71,9 @@ It serves whatever `dist/` Vite produced — React or Svelte, no difference here
 
 - **CSP in-code** via `tower_http::set_header::SetResponseHeaderLayer` on all
   responses: `default-src 'self'; script-src 'self'; style-src 'self'
-  'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:
-  https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self';
-  frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'`.
+'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:
+https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self';
+frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'`.
   Extend `img-src`/`media-src` per app. **HSTS / X-Frame-Options /
   X-Content-Type-Options are Traefik's job**, not the binary's.
 - **Sessions** (only if the app has its own login): `axum-extra` `SignedCookieJar`
@@ -86,7 +86,7 @@ It serves whatever `dist/` Vite produced — React or Svelte, no difference here
   `?token=` solely where a client can't set headers, and keep those routes out of
   access logs).
 - **Unauthenticated liveness:** one `GET /status` (or `/ping`) → `{service,
-  version, <upstream>_healthy: bool}` — booleans + version only, no secrets. The
+version, <upstream>_healthy: bool}` — booleans + version only, no secrets. The
   Pi's gatus probes these; keep auth-free (and on a Traefik monitor router that
   bypasses oauth2-proxy if the host is gated).
 - **Input:** parameterized SQL (`rusqlite params!`), path-traversal scrub,

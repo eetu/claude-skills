@@ -19,12 +19,12 @@ one container to `ghcr.io/eetu/<name>`, and is deployed onto the Pi 4 by
 
 This skill is the index. The pieces live in their own skills:
 
-| Concern | Skill |
-|---|---|
-| Visual identity (tokens, wordmark, glyph) | `halo-design` |
-| Frontend SPA (contract + React/Svelte) | `spa-frontend` |
-| Rust backend + security impl + tests | `rust-axum` |
-| TS/JS code conventions | `ts-style` (coding-style plugin) |
+| Concern                                   | Skill                            |
+| ----------------------------------------- | -------------------------------- |
+| Visual identity (tokens, wordmark, glyph) | `halo-design`                    |
+| Frontend SPA (contract + React/Svelte)    | `spa-frontend`                   |
+| Rust backend + security impl + tests      | `rust-axum`                      |
+| TS/JS code conventions                    | `ts-style` (coding-style plugin) |
 
 If invoked with no concrete task, ask what the app does, then walk the scaffold.
 
@@ -40,7 +40,7 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
 
 ## Repo layout
 
-```
+```text
 <name>/
   Cargo.toml Cargo.lock Dockerfile .dockerignore .gitignore
   install-hooks.sh  .githooks/pre-commit

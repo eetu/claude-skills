@@ -7,10 +7,19 @@ user-invocable: true
 > **Priors, not rails.** These are the current house conventions, enforced by
 > `eslint-config`. They keep diffs boring and code uniform. If a convention
 > actively fights a better pattern (new language feature, a rule that's aged
-> out), propose the change *to the eslint-config repo* so the whole fleet moves
+> out), propose the change _to the eslint-config repo_ so the whole fleet moves
 > together — don't silently diverge in one project.
 
 # ts-style
+
+## Package manager: always yarn (latest), never npm/pnpm
+
+Every JS/TS project uses **yarn**, pinned to the **latest** release via the
+`packageManager` field and run through **corepack** (`corepack enable` once; no
+global install, no committed release binary). Run scripts and manage deps with
+`yarn` — `yarn install`, `yarn add`, `yarn <script>`, `yarn dlx` (not `npx`).
+Commit `yarn.lock`; CI installs with `yarn install --immutable`. Don't mix in
+`npm`/`pnpm` — a stray `package-lock.json` is a bug.
 
 ## Tooling does the mechanical work — don't hand-fight it
 
@@ -21,7 +30,7 @@ Style is enforced by **`eslint-config`** (a git dependency:
 - `@eslint/js` recommended + `typescript-eslint` recommended
 - **`simple-import-sort`** — imports/exports auto-sorted (error). Never reorder
   imports by hand; run `yarn lint:fix`.
-- **`unused-imports`** — unused *imports* error; unused *vars* warn, ignored when
+- **`unused-imports`** — unused _imports_ error; unused _vars_ warn, ignored when
   prefixed `_` (`argsIgnorePattern`/`varsIgnorePattern` = `^_`).
 - **prettier** (defaults, no rc file) — 2-space, double quotes, semicolons,
   trailing commas, ~80 col. Run `yarn format` / `format:fix`; don't argue layout.
@@ -31,6 +40,17 @@ Per-project `eslint.config.js` is tiny: spread `eslint-config/react` (and
 `@tanstack/eslint-plugin-router` flat/recommended first if the app uses the
 router). Scripts: `lint`, `lint:fix`, `format`, `format:fix`, `typecheck`
 (`tsc --noEmit`), `validate` (= typecheck + lint + format).
+
+## Zero warnings — TS specifics
+
+The general posture lives in **lint-format**: tooling always present, defaults
+unless overridden, `validate` clean before landing, fix-or-disable-with-reason.
+Here that floor is concrete: TS/JS tooling is **pinned by `eslint-config`**
+(eslint + prettier, versions locked) — that's the project rule that overrides
+"community default", so use it, don't bring your own. When you must disable,
+scoped `// eslint-disable-next-line <rule> -- reason`; recurring disables mean
+the rule is mis-tuned — fix it in `eslint-config` (per the priors note above),
+not per-project.
 
 ## The conventions tooling can't enforce
 
@@ -52,7 +72,7 @@ router). Scripts: `lint`, `lint:fix`, `format`, `format:fix`, `typecheck`
 - **Reach for `??` and `?.`**, not `||` / manual null guards, for nullish cases.
 - **Prefix intentionally-unused bindings with `_`** so the linter stays quiet.
 - **JSDoc block comments** on non-obvious exported components/functions (see
-  scribe's `Wordmark.tsx`) — short, says *why*, not *what*.
+  scribe's `Wordmark.tsx`) — short, says _why_, not _what_.
 
 ## Reference
 
