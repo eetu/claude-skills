@@ -12,14 +12,28 @@ user-invocable: true
 
 # ts-style
 
-## Package manager: always yarn (latest), never npm/pnpm
+## Toolchain: yarn (latest) + a pinned node version
 
-Every JS/TS project uses **yarn**, pinned to the **latest** release via the
-`packageManager` field and run through **corepack** (`corepack enable` once; no
-global install, no committed release binary). Run scripts and manage deps with
-`yarn` — `yarn install`, `yarn add`, `yarn <script>`, `yarn dlx` (not `npx`).
-Commit `yarn.lock`; CI installs with `yarn install --immutable`. Don't mix in
-`npm`/`pnpm` — a stray `package-lock.json` is a bug.
+**Package manager — always yarn (latest), vendored, never npm/pnpm.** Every
+JS/TS project uses **yarn 4**, pinned **and vendored** into the repo with
+`yarn set version <ver> --yarn-path`: it commits `.yarn/releases/yarn-<ver>.cjs`
+and sets `yarnPath` in `.yarnrc.yml`. The `--yarn-path` flag is **required** —
+modern `yarn set version` only bumps the `packageManager` field otherwise.
+**No corepack** — node ≥25 dropped the bundled corepack, so a committed binary is
+what makes the toolchain reproducible and node-version-independent. Run scripts
+and manage deps with `yarn` — `yarn install`, `yarn add`, `yarn <script>`,
+`yarn dlx` (not `npx`). Commit `yarn.lock` and `.yarn/releases/*.cjs` (berry's
+`.gitignore` drops `.yarn/cache`/`install-state` but keeps `releases`); CI and
+Docker invoke `yarn install --immutable`. Don't mix in `npm`/`pnpm` — a stray
+`package-lock.json` is a bug.
+
+**Node version — always a `.node-version` file.** Every project (frontend or
+node) commits a `.node-version` pinning the node major, set to the **latest**
+release (node 26 as of 2026-05). `.node-version` over `.nvmrc` — broadest tool
+support (fnm, nodenv, asdf all read it). fnm picks it up on `cd`; CI reads it via
+`actions/setup-node` `node-version-file: .node-version` (don't hardcode the
+version in the workflow). Bump the file to move the floor; keep it in step with
+the Dockerfile's node stage.
 
 ## Tooling does the mechanical work — don't hand-fight it
 

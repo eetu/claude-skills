@@ -1,7 +1,8 @@
 .DS_Store
 node_modules
 
-# Yarn (Berry) — pulled by corepack from the packageManager field; nothing committed
+# Yarn (Berry) — vendored release committed, everything else ignored
 .yarn/*
+!.yarn/releases
 .pnp.*
 yarn-error.log
