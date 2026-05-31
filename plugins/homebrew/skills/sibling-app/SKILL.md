@@ -73,6 +73,13 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   `frontend/` → `yarn lint` + `yarn format`; `backend|shared|Cargo.*` →
   `cargo clippy --workspace --all-targets -- -D warnings`. Add a python branch
   only if the app has one.
+  - **Commit both scripts with the executable bit (mode 755).** Files written by
+    an editor/tool land 644, and git stores the mode — a 644 `install-hooks.sh`
+    can't be `./`-run, and git **silently skips** a non-executable
+    `core.hooksPath` hook, so the gate appears installed but never fires. After
+    creating them: `chmod +x install-hooks.sh .githooks/*` **then** `git add`
+    (or, if already committed wrong, `git update-index --chmod=+x <file>`).
+    Verify with `git ls-files -s .githooks` → mode must read `100755`.
 - **CI (`ci.yaml`):** `frontend` job (yarn install --immutable → lint, format,
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
   `Swatinem/rust-cache@v2`, clippy `-D warnings`, `cargo test`, build --release).
