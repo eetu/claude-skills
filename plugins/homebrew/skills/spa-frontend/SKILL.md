@@ -1,16 +1,16 @@
 ---
 name: spa-frontend
-description: The frontend half of a homebrew web app — a Vite-built SPA that the Rust backend embeds and serves, talks to the backend over /api, styled with the halo-design tokens and written in ts-style. Use when building or working on the UI of a sibling app. Defines a framework-agnostic contract (build → embed → proxy → conventions) with React documented as the current default across all 4 apps, and Svelte as the actively-evaluated alternative. Pairs with rust-axum (backend) and sibling-app (assembly).
+description: The frontend half of a homebrew web app — a Vite-built SPA that the Rust backend embeds and serves, talks to the backend over /api, styled with the halo-design tokens and written in ts-style. Use when building or working on the UI of a sibling app. Defines a framework-agnostic contract (build → embed → proxy → conventions) with React documented as the current default across the family, and Svelte as the shipped, recommended alternative. Pairs with rust-axum (backend) and sibling-app (assembly).
 user-invocable: true
 ---
 
 > **Priors, not rails — and the framework is explicitly a slot.** React is the
-> current default by inertia: four apps (halo, chat, scribe, listen-this) use
-> it. That is _not_ a mandate. The stable thing is the **contract** below; the
-> framework that fulfills it is swappable. **Svelte has now shipped** in
-> raspi-dashboard (the verified stack is specified below, on par with the React
-> section) and is the recommended choice for a new app. Keep the contract, swap
-> the instantiation, document it here.
+> current default by inertia: most apps in the family use it. That is _not_ a
+> mandate. The stable thing is the **contract** below; the framework that
+> fulfills it is swappable. **Svelte has now shipped** in the family (the
+> verified stack is specified below, on par with the React section) and is the
+> recommended choice for a new app. Keep the contract, swap the instantiation,
+> document it here.
 
 # spa-frontend
 
@@ -34,7 +34,7 @@ user-invocable: true
 5. **Data layer = a thin fetch wrapper + cache/revalidate** over the backend's
    JSON. Types hand-written to match the Rust structs (no codegen — see
    `sibling-app`).
-6. **Toolchain — Yarn 4, vendored into the repo (no corepack).** Pin + vendor
+6. **Toolchain — yarn (latest), vendored into the repo (no corepack).** Pin + vendor
    with `yarn set version <ver> --yarn-path`: it commits
    `.yarn/releases/yarn-<ver>.cjs` and sets `yarnPath` in `.yarnrc.yml`. The
    `--yarn-path` flag is **required** — modern `yarn set version` only bumps the
@@ -57,7 +57,7 @@ user-invocable: true
 
 Touch devices need a real PNG `apple-touch-icon` (iOS ignores SVG favicons for
 the home screen) plus a web manifest for Android/PWA install. The house setup
-(reference: `../raspi-dashboard/frontend`):
+(reference: a sibling app's `frontend`):
 
 - **Source SVGs** (committed, hand-edited — the per-app glyph from the design
   skill, on an _opaque_ bg):
@@ -89,29 +89,29 @@ rsvg-convert -w 512 -h 512 icon-maskable.svg -o icon-512-maskable.png
   already in the template. Don't put these in a component `<svelte:head>` — keep
   them in the static HTML shell so they're present pre-hydration.
 
-## React instantiation (current default — verified across the 4 apps)
+## React instantiation (current default — verified across the family)
 
-- React 19 + Vite 8 + `@vitejs/plugin-react` + `babel-plugin-react-compiler`.
+- React + Vite + `@vitejs/plugin-react` + `babel-plugin-react-compiler` (latest).
 - **Styling:** `@emotion/react` (CSS-in-JS) — a typed `Theme` in
   `frontend/src/themes.ts` (mirrors `halo-design` tokens); components call
   `useTheme()` and style via the `css={{}}` prop. **Not** tailwind / CSS-modules.
 - **Routing:** `@tanstack/react-router` (file-based, `autoCodeSplitting`); single-
-  view apps (halo) skip the router. `eslint.config.js` then also spreads
+  view apps skip the router. `eslint.config.js` then also spreads
   `@tanstack/eslint-plugin-router` `flat/recommended`.
 - **Data:** `swr`. **Misc:** `classnames`, `usehooks-ts`.
 - Component/handler/type conventions: see `ts-style` (named function components,
   arrow callbacks, `type` props). `Wordmark.tsx` + `themes.ts` are the canonical
   brand/theme files to copy forward.
 
-## Svelte instantiation (shipped in raspi-dashboard — verified stack)
+## Svelte instantiation (shipped — verified stack)
 
-Why chosen: lighter runtime and smaller compiled output (good on a Pi 4);
+Why chosen: lighter runtime and smaller compiled output (good on a small Pi);
 **scoped `<style>` blocks consuming `--halo-*` CSS vars are a more natural fit
 for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
 `themes.ts`/Emotion layer. ts-style and the whole contract above still apply
-(Svelte is TS-first). Reference app: `../raspi-dashboard/frontend`.
+(Svelte is TS-first). Reference: a sibling Svelte app's `frontend`.
 
-- **SvelteKit 2 + Svelte 5 (runes) + Vite 8**, scaffolded with `npx sv create
+- **SvelteKit + Svelte (runes) + Vite** (latest), scaffolded with `npx sv create
   <dir> --template minimal --types ts --no-add-ons`. Runes mode is on by default
   in the generated `svelte.config.js`.
 - **Adapter = `@sveltejs/adapter-static` in pure-SPA mode.** No server logic (no
@@ -134,8 +134,8 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
     `index.html` for `/` and every unmatched path. Naming the fallback
     `index.html` makes the two line up with no backend change. **Backend note:**
     tower-http `ServeDir.not_found_service` leaks a 404 status onto client
-    routes — raspi-dashboard's backend instead serves the SPA via a small fs
-    handler (200 + content-type + path-traversal guard). See rust-axum.
+    routes — the backend instead serves the SPA via a small fs handler
+    (200 + content-type + path-traversal guard). See rust-axum.
 
 - **Styling:** import `colors_and_type.css` globally in `+layout.svelte`
   (copied verbatim to `src/lib/styles/halo.css`); use `--halo-*` in component
@@ -146,8 +146,8 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
   (poll/SWR-ish: reactive `data/error/loading`, started/stopped from an
   `$effect`). No `swr`.
 - **Routing:** SvelteKit file-based routes. Single-view apps just use `+page.svelte`.
-- **Lint/format:** use the shared **`eslint-config/svelte`** preset (added in
-  v2.1.0 — a factory, since it needs your `svelte.config.js`):
+- **Lint/format:** use the shared **`eslint-config/svelte`** preset (a factory,
+  since it needs your `svelte.config.js`):
   `import svelte from "eslint-config/svelte"; import svelteConfig from
 "./svelte.config.js"; export default svelte(svelteConfig);`. It bundles
   `eslint-plugin-svelte` recommended + prettier + the TS parser wiring. Prettier

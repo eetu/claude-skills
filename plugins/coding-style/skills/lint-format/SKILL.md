@@ -28,6 +28,15 @@ otherwise:
 
 Don't hand-fight the formatter, don't reorder/realign by hand — run the tool.
 
+## New project: prefer the latest of every dependency
+
+When scaffolding a new app, take the **latest release** of every dependency and
+tool — language runtime, framework, libraries, formatter/linter. Don't seed a
+new repo with versions copied from an older sibling; start current and let the
+lockfile pin. (Existing projects bump deliberately, on their own cadence.) These
+skills name _preferred libraries_ but deliberately avoid version numbers —
+"latest" is the version.
+
 ## Use defaults unless a rule overrides
 
 Adopt each tool's **default config**. Don't author a custom rc, tweak rule

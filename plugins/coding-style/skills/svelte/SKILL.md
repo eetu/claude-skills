@@ -1,11 +1,11 @@
 ---
 name: svelte
-description: Svelte 5 + SvelteKit house code style for eetu's projects — the .svelte conventions that layer on top of ts-style (which still governs all .ts). Covers runes (state/derived/props/effect), callback-prop events, snippets over slots, scoped styles consuming halo-design tokens, .svelte.ts modules for shared reactive state, keyed each, file-based routing with resolve()/page, and the eslint-config/svelte preset. Use when writing or reviewing any Svelte/SvelteKit code.
+description: Svelte (runes) + SvelteKit house code style for eetu's projects — the .svelte conventions that layer on top of ts-style (which still governs all .ts). Covers runes (state/derived/props/effect), callback-prop events, snippets over slots, scoped styles consuming halo-design tokens, .svelte.ts modules for shared reactive state, keyed each, file-based routing with resolve()/page, and the eslint-config/svelte preset. Use when writing or reviewing any Svelte/SvelteKit code.
 user-invocable: true
 ---
 
-> **Priors, not rails.** Current house conventions for the Svelte stack (shipped
-> first in raspi-dashboard). Svelte 5 + SvelteKit, TypeScript-first. If a
+> **Priors, not rails.** Current house conventions for the Svelte stack.
+> Svelte (runes) + SvelteKit, TypeScript-first. If a
 > convention fights a better pattern, propose the change to `eslint-config` (the
 > `svelte` preset) or this skill so the fleet moves together — don't silently
 > diverge. `ts-style` still governs everything inside `<script lang="ts">`; this
@@ -14,7 +14,7 @@ user-invocable: true
 
 # svelte
 
-## Stack: Svelte 5 (runes) + SvelteKit, always TypeScript
+## Stack: Svelte (runes) + SvelteKit, always TypeScript
 
 `<script lang="ts">` always. Runes mode on (the default in a fresh `sv create`).
 No legacy reactivity — no `export let`, no `$:`, no `on:` directive, no
@@ -56,7 +56,7 @@ hand-sort imports or argue layout — run `yarn lint:fix` / `yarn format:fix`.
   default export — no explicit export needed). Smaller helpers = `const` arrows
   inside `<script>`, per ts-style.
 - **Events = callback props**, not dispatchers: accept `onSave`, `onclick` in
-  `$props` and call them. Native handlers use the Svelte 5 attribute form
+  `$props` and call them. Native handlers use the runes-era attribute form
   (`onclick={…}`, no colon).
 - **Composition = snippets**, not slots: `{#snippet row(item)}…{/snippet}` +
   `{@render row(x)}`; pass snippets as props (incl. `children`).
@@ -87,7 +87,7 @@ hand-sort imports or argue layout — run `yarn lint:fix` / `yarn format:fix`.
 
 ## Reference
 
-Live examples: `../raspi-dashboard/frontend/src` — `routes/+layout.svelte`
-(tabs/resolve/page), `lib/components/*.svelte` (props/snippets/scoped styles),
-`lib/resource.svelte.ts` (runes module), `lib/api.ts`. Preset source:
-`../eslint-config/svelte.js`.
+Live examples: a sibling Svelte app's `frontend/src` — `routes/+layout.svelte`
+(tabs/resolve/page), `lib/components/*.svelte` (props/snippets/scoped styles), a
+`*.svelte.ts` runes module, `lib/api.ts`. Preset source: the `eslint-config`
+repo's `svelte.js`.

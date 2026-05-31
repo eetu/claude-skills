@@ -15,7 +15,7 @@ user-invocable: true
 ## Toolchain: yarn (latest) + a pinned node version
 
 **Package manager — always yarn (latest), vendored, never npm/pnpm.** Every
-JS/TS project uses **yarn 4**, pinned **and vendored** into the repo with
+JS/TS project uses **yarn** (latest), pinned **and vendored** into the repo with
 `yarn set version <ver> --yarn-path`: it commits `.yarn/releases/yarn-<ver>.cjs`
 and sets `yarnPath` in `.yarnrc.yml`. The `--yarn-path` flag is **required** —
 modern `yarn set version` only bumps the `packageManager` field otherwise.
@@ -35,7 +35,7 @@ after clone (see `sibling-app`).
 
 **Node version — always a `.node-version` file.** Every project (frontend or
 node) commits a `.node-version` pinning the node major, set to the **latest**
-release (node 26 as of 2026-05). `.node-version` over `.nvmrc` — broadest tool
+release. `.node-version` over `.nvmrc` — broadest tool
 support (fnm, nodenv, asdf all read it). fnm picks it up on `cd`; CI reads it via
 `actions/setup-node` `node-version-file: .node-version` (don't hardcode the
 version in the workflow). Bump the file to move the floor; keep it in step with
@@ -91,11 +91,11 @@ not per-project.
   `const LOCALE_LABEL: Record<string, string> = { … }`.
 - **Reach for `??` and `?.`**, not `||` / manual null guards, for nullish cases.
 - **Prefix intentionally-unused bindings with `_`** so the linter stays quiet.
-- **JSDoc block comments** on non-obvious exported components/functions (see
-  scribe's `Wordmark.tsx`) — short, says _why_, not _what_.
+- **JSDoc block comments** on non-obvious exported components/functions —
+  short, says _why_, not _what_.
 
 ## Reference
 
-Live examples: `../scribe/frontend/src/components/*.tsx`,
-`../scribe/frontend/src/api.ts`. The eslint-config source:
-`../eslint-config/{node,react}.js`.
+Live examples: a sibling app's `frontend/src/components/*.tsx` and
+`frontend/src/api.ts`. The eslint-config source: the `eslint-config` repo's
+`{node,react}.js`.

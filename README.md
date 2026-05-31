@@ -34,7 +34,7 @@ claude --plugin-dir ./plugins/homebrew          # load for one session
 
 Plugin skills are namespaced (`homebrew:halo-design`). A project's own
 `.claude/skills/<name>` always wins over a same-named plugin skill — so per-repo
-design skills (scribe-design, halo's own) layer on top of the shared ones freely.
+design skills (`<app>-design`) layer on top of the shared ones freely.
 
 ### Auto-enable per project
 

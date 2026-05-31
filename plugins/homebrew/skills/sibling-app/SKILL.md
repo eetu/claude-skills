@@ -6,20 +6,21 @@ user-invocable: true
 
 > **Priors, not rails.** This is the assembly playbook for the family as it
 > stands (Rust axum backend + Vite SPA, shipped as one arm64 container, deployed
-> by pyinfra). The framework slot (React today, Svelte under evaluation — see
+> by pyinfra). The framework slot (React or Svelte — see
 > `spa-frontend`) and any tool here are open to better options; keep the seams
 > and the deploy contract, swap the parts, document the change. **The
 > single-binary, all-Rust shape is the common case, not a rule** — a domain that
 > needs extra service binaries or a non-Rust sidecar (see "Multi-service &
 > polyglot" below) is still a sibling app, as long as it keeps the seams, the
-> security model, and the deploy contract. Reference is `../scribe` (the worked
-> multi-service example); read it live, versions drift.
+> security model, and the deploy contract. Read an existing sibling app live for
+> the worked multi-service example; versions drift — prefer the latest.
 
 # sibling-app
 
 A sibling app = a Rust (axum) binary that **embeds a Vite SPA**, ships to
-`ghcr.io/eetu/<name>`, and is deployed onto the Pi 4 by `../raspi` as a Podman
-quadlet behind Traefik + oauth2-proxy. Usually that's **one** binary in **one**
+`ghcr.io/<owner>/<name>`, and is deployed onto the Pi by the deploy/infra repo
+(`../raspi`, a pyinfra project) as a Podman quadlet behind Traefik +
+oauth2-proxy. Usually that's **one** binary in **one**
 container; some apps add extra service binaries or a non-Rust sidecar, each its
 own image (see "Multi-service & polyglot").
 
@@ -56,11 +57,11 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   backend/   # see rust-axum
   frontend/  # see spa-frontend
   shared/    # optional shared types
-  e2e/       # optional integration crate (scribe has one)
+  e2e/       # optional integration crate
   <worker>/  # optional extra Rust service crate(s) — workers/sidecars
-             #   (scribe: press = ffmpeg worker, shelf = ABS-compat API)
+             #   (e.g. an ffmpeg media worker, a compat API)
   <sidecar>/ # optional non-Rust sidecar, own toolchain, NOT in the workspace
-             #   (scribe: shim = Python FastAPI wrapping mkb79/audible)
+             #   (e.g. a Python FastAPI service wrapping a vendor SDK)
 ```
 
 ## Multi-service & polyglot (only when the domain demands it)
@@ -68,38 +69,37 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
 Default to one binary. Split out a second service **only** when work is genuinely
 separate — a long-running worker that mustn't block requests, a component with a
 different memory/lifecycle profile, or one that wraps a library with no Rust
-equivalent. Scribe is the worked example: `backend` (API + SPA), `press` (ffmpeg
-worker), `shelf` (ABS-compat API), and a Python `shim` (Audible auth/library via
-`mkb79/audible`).
+equivalent. A worked example: `backend` (API + SPA), an ffmpeg media `worker`, a
+compat-API service, and a Python `shim` wrapping a vendor SDK.
 
 - **Extra Rust services** are just more workspace crates (`rust-axum` covers the
   per-crate shape — each its own binary, config, `/status`). They share
   `shared/` types and the `[workspace.dependencies]` table.
-- **Non-Rust sidecar** when a library forces the language (Python here for
-  `mkb79/audible`). It lives **outside** the Cargo workspace with its own
-  toolchain (scribe: `uv` + FastAPI + `ruff`), and is reached over **loopback
+- **Non-Rust sidecar** when a library forces the language (e.g. Python for a
+  vendor SDK with no Rust crate). It lives **outside** the Cargo workspace with
+  its own toolchain (e.g. `uv` + FastAPI + `ruff`), and is reached over **loopback
   HTTP only** — the main backend never imports it or parses its secrets. This is
   also the **isolation boundary**: scope sensitive state (credentials, vendor
   cookies) to the sidecar so a crash/compromise there leaves the cached-data app
   working. Justify the extra language in the app's `CLAUDE.md`.
 - **Inter-service auth:** loopback isn't trust — services authenticate with a
   shared bearer token (env, constant-time compare; `rust-axum` security).
-- **One image per service**, each `ghcr.io/eetu/<name>-<svc>`; the tooling below
-  fans out per service (see the per-service notes inline).
-- **Deploy:** one `../raspi` quadlet per service (scribe: `scribe.py` +
-  `scribe_shim.py`); co-locate on the Pi over loopback or split across LAN hosts.
+- **One image per service**, each `ghcr.io/<owner>/<name>-<svc>`; the tooling
+  below fans out per service (see the per-service notes inline).
+- **Deploy:** one `../raspi` quadlet per service (one task file per image);
+  co-locate on the Pi over loopback or split across LAN hosts.
 
 ## Scaffold order
 
-1. Workspace `Cargo.toml` (from `../scribe`; keep `[workspace.dependencies]`,
-   trim `members`). → `rust-axum`.
+1. Workspace `Cargo.toml` (from a sibling app; keep `[workspace.dependencies]`,
+   trim `members`; prefer the latest crate versions). → `rust-axum`.
 2. Backend skeleton → `rust-axum`.
 3. Frontend skeleton → `spa-frontend` (pick framework consciously).
 4. Per-app design skill → `halo-design` (copy `colors_and_type.css`, swap the
    four deltas: glyph, wordmark text, layout, voice).
 5. Tooling (this skill): hooks, workflows, dependabot, Dockerfile, ignores.
    Run `./install-hooks.sh`.
-6. `SECURITY.md`: copy scribe's, rewrite threat-model/trust-boundaries.
+6. `SECURITY.md`: copy a sibling app's, rewrite threat-model/trust-boundaries.
 7. Deploy wiring in `../raspi` (below).
 
 ## App-level tooling (owned here)
@@ -108,7 +108,7 @@ worker), `shelf` (ABS-compat API), and a Python `shim` (Audible auth/library via
   `pre-commit` (`set -e`, early-exit on empty staged set) inspects staged paths:
   `frontend/` → `yarn lint` + `yarn format`; `backend|shared|Cargo.*` →
   `cargo clippy --workspace --all-targets -- -D warnings` (covers all Rust
-  service crates at once). Add a branch per non-Rust sidecar (scribe:
+  service crates at once). Add a branch per non-Rust sidecar (e.g. a Python one:
   `shim/*.py|shim/pyproject.toml` → `uv run ruff check src`).
   - **Commit both scripts with the executable bit (mode 755).** Files written by
     an editor/tool land 644, and git stores the mode — a 644 `install-hooks.sh`
@@ -121,32 +121,38 @@ worker), `shelf` (ABS-compat API), and a Python `shim` (Audible auth/library via
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
   `Swatinem/rust-cache@v2`, clippy `-D warnings`, `cargo test`, build --release;
   one job covers the whole Rust workspace). Add `e2e` job if there's an e2e
-  crate. Each non-Rust sidecar gets its own job in its toolchain (scribe `shim`:
-  `astral-sh/setup-uv` → `uv sync --frozen` → `ruff check src`).
+  crate. Each non-Rust sidecar gets its own job in its toolchain (e.g. a Python
+  one: `astral-sh/setup-uv` → `uv sync --frozen` → `ruff check src`).
 - **`dockerimage.yaml`:** `dorny/paths-filter` gate → QEMU + buildx → ghcr login
   → `docker/metadata-action` (tags: `type=ref,event=branch` for `:main`, semver
   on `v*`, `latest` only on version tags) → `build-push-action`
   (`platforms: linux/arm64`, `provenance:false`, `sbom:false`, gha cache) →
-  `actions/delete-package-versions` prune untagged (keep 5).
-- **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'`, uses
-  `eetu/action-automerge@v1`. **`cve-scan.yaml`:** weekly trivy, SARIF → Security
-  tab, report-only.
-- **`dependabot.yaml`:** npm(`/frontend`) + cargo(`/`) + docker + github-actions;
+  `actions/delete-package-versions` prune untagged (keep 5). **One image per
+  service** — repeat the build-push per service (build each service's image),
+  each its own target stage + ghcr repo + paths-filter gate.
+- **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'`, uses the house
+  automerge action. **`cve-scan.yaml`:** weekly trivy, SARIF → Security
+  tab, report-only; matrix over every service image (per-image SARIF category).
+- **`dependabot.yaml`:** npm(`/frontend`) + cargo(`/`) + docker + github-actions,
+  **plus one ecosystem per non-Rust sidecar** (e.g. pip at `/shim`);
   cooldowns (major 14d/minor 7d/patch 5d); group react/tanstack/axum/tokio;
   ignore eslint major.
 - **Dockerfile:** multi-stage, `tonistiigi/xx` cross-compile → `scratch`. Stages:
-  `frontend-build` (node 24+-alpine) — COPY the manifest + `yarn.lock` +
+  `frontend-build` (`node:<latest>-alpine`) — COPY the manifest + `yarn.lock` +
   `.yarnrc.yml` + `.yarn/releases`, then `RUN node .yarn/releases/yarn-*.cjs
 install --immutable` and `… build`. **Vendored yarn, no corepack** (see
   `spa-frontend`), so the stage is independent of the node version. →
   `workspace-deps` (warm cargo cache) → `backend-build` → `runner` (scratch +
-  binary + dist + certs).
+  binary + dist + certs). **Multi-service:** one runner stage per Rust binary
+  (the SPA `dist/` ships only with the frontend-serving one); a non-Rust sidecar
+  gets its own base + stage (e.g. Python: `python:<latest>-slim` + `uv sync`),
+  not scratch. `dockerimage.yaml` builds each via its target stage.
 
 ### Per-app substitutions
 
-`scribe`→`<name>` (crate names, image, prune package-name);
-`SCRIBE_IMAGE_TAG`/`VITE_SCRIBE_IMAGE_TAG`→`<NAME>_IMAGE_TAG`; branch
-(`main`; halo uses `develop`); env prefixes (`<NAME>_DB_PATH`, `BIND`,
+When copying from a sibling app: `<sibling>`→`<name>` (crate names, image, prune
+package-name); `<SIBLING>_IMAGE_TAG`/`VITE_<SIBLING>_IMAGE_TAG`→`<NAME>_IMAGE_TAG`;
+branch (`main`; some apps use `develop`); env prefixes (`<NAME>_DB_PATH`, `BIND`,
 `STATIC_DIR`); pre-commit cargo glob.
 
 ## Edge security / deploy trust model (cross-cutting — every app, any backend)
@@ -166,13 +172,14 @@ install --immutable` and `… build`. **Vendored yarn, no corepack** (see
 
 - `all.py` + `all.example.py`: service dict (host `127.0.0.1`, port, `url_prefix`,
   image, `public:` flag, `MemoryMax`, `MALLOC_ARENA_MAX=2`).
-- `tasks/<name>.py`: quadlet — **copy `tasks/chat.py`** (`Network=host`,
-  AutoUpdate/Pull for `:main`, `optional()` + cleanup branch).
+- `tasks/<name>.py`: quadlet — **copy an existing service's task**
+  (`tasks/<existing>.py`) (`Network=host`, AutoUpdate/Pull for `:main`,
+  `optional()` + cleanup branch).
 - `tasks/traefik.py`: add `(name, DICT, "<prefix>")` to `ROUTES`; if human-gated,
   append the route name to **`_gated_hosts`** (there is **no** `OAUTH2_GATED_HOSTS`
   var — that's a common mistake).
 - `tasks/secrets.py` env write + a `vault.py` helper if it needs secrets.
-- `_SUBDOMAIN_NAMES` in `all.py` — the **dict name** (e.g. `RASPI_DASHBOARD`),
+- `_SUBDOMAIN_NAMES` in `all.py` — the **dict name** (e.g. `<APP_NAME>`),
   not the subdomain string.
 - `tasks/network_restrict.py` `RESTRICTED` if LAN-only.
 - `RESTIC["paths"]` only if stateful. `deploy.py` include after dependencies.
@@ -181,5 +188,5 @@ install --immutable` and `… build`. **Vendored yarn, no corepack** (see
 ## Verified stack values
 
 Live in the leaf skills (`rust-axum` deps, `spa-frontend` React stack,
-`ts-style` eslint-config). Always cross-check `../scribe` before copying —
-this fleet's versions move.
+`ts-style` eslint-config). Always cross-check a sibling app before copying —
+versions move; prefer the latest.

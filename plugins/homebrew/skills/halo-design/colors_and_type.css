@@ -1,15 +1,14 @@
 /* ----------------------------------------------------------------------
  * halo-design — canonical design tokens for the homebrew app family
  *
- * Shared visual identity across halo, chat, scribe, listen-this, and any
- * new personal web app. Copy this file verbatim into a new project (static
+ * Shared visual identity across the homebrew web app family and any new
+ * personal web app. Copy this file verbatim into a new project (static
  * HTML: <link> it; React: mirror it into frontend/src/themes.ts; Svelte:
  * import globally and use the vars in scoped <style> blocks).
  *
- * Prefix: --halo-* is canonical (halo is the family origin). The chat and
- * scribe repos still carry the legacy --hcc-* prefix (hcc = halo's former
- * name) in their production code — migrate them to --halo-* when next touched.
- * New apps: use --halo-*.
+ * Prefix: --halo-* is canonical (halo is the family origin). Some older repos
+ * still carry a legacy --hcc-* prefix (hcc = halo's former name) in production
+ * code — migrate them to --halo-* when next touched. New apps: use --halo-*.
  * -------------------------------------------------------------------- */
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap");
@@ -93,7 +92,7 @@
  *
  * Elevation is the SHADOW, not a border. Do NOT add `border: … --halo-border`
  * to a card: in light mode the border competes with the shadow and muddies the
- * float (this is the halo-vs-raspi-dashboard regression). Dark mode sets
+ * float (a regression we hit when a sibling app added one). Dark mode sets
  * --halo-shadow: none on purpose — cards there read via bg-main-vs-body
  * contrast (#252525 on #0f0f0f), still no border. Borders are for internal
  * hairlines/dividers, not the card edge.

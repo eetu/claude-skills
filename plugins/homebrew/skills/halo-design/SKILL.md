@@ -1,6 +1,6 @@
 ---
 name: halo-design
-description: The shared visual identity for eetu's homebrew web apps (halo, chat, scribe, listen-this, and any new one) — Inter + Space Grotesk type, a single warm orange accent, soft 6px cards, light/dark via prefers-color-scheme. Use whenever building or styling a new personal/self-hosted web app, including throwaway static HTML mockups and docs pages. Provides canonical design tokens (colors_and_type.css), wordmark + glyph conventions, and a recipe for per-app design skills that layer glyph/voice/layout on top.
+description: The shared visual identity for eetu's homebrew web apps — Inter + Space Grotesk type, a single warm orange accent, soft 6px cards, light/dark via prefers-color-scheme. Use whenever building or styling a new personal/self-hosted web app, including throwaway static HTML mockups and docs pages. Provides canonical design tokens (colors_and_type.css), wordmark + glyph conventions, and a recipe for per-app design skills that layer glyph/voice/layout on top.
 user-invocable: true
 ---
 
@@ -14,11 +14,11 @@ user-invocable: true
 
 # halo-design — the homebrew family look
 
-One visual language across every self-hosted app: **halo** (the family origin —
-canonical tokens use its `--halo-*` prefix), **chat**, **scribe**,
-**listen-this**, and whatever comes next. A person who's used one should instantly recognize the
-next. Only four things differ per app: the **wordmark glyph**, the **wordmark
-text**, the **layout/density**, and the **voice**.
+One visual language across every self-hosted app in the family — canonical
+tokens use the `--halo-*` prefix (halo is the family origin). A person who's
+used one should instantly recognize the next. Only four things differ per app:
+the **wordmark glyph**, the **wordmark text**, the **layout/density**, and the
+**voice**.
 
 If invoked with no concrete task, ask what the user wants to build or design,
 ask a couple of questions, then act as an expert designer — output static HTML
@@ -69,22 +69,23 @@ own; keep it terse and lowercase.
   `stroke-linecap: round` / `stroke-linejoin: round`.
 - Must read at favicon size.
 
-Reference examples: halo = thin ring + warm centre (`assets/halo-logo.svg`);
-chat = chat bubble + warm centre; scribe = closed-book outline + audio ripples +
-warm dot. New app = a new glyph in the same stroke family.
+Reference example: halo = thin ring + warm centre (`assets/halo-logo.svg`, the
+glyph shipped in this skill). Other apps follow the same stroke language with
+their own motif (a bubble, a book + ripples, etc.); a new app = a new glyph in
+the same family.
 
 ## Voice
 
 Lowercase, terse, numbers-do-the-talking. No marketing voice, no exclamation
 marks, no emoji. Empty states get at most one quiet line. Each app picks a
-flavor (halo: Finnish; scribe: archival; chat: dry) but the restraint is shared.
+flavor (e.g. a localized tongue, archival, dry) but the restraint is shared.
 
 ## Two ways to apply
 
-**A. Static HTML** (mockups, docs pages like `listen-this/docs/index.html`,
-prototypes): `<link>` or inline `colors_and_type.css`, use the `--halo-*` vars and
-`.halo-card` / `.halo-wordmark` primitives directly. Don't re-derive tokens by
-hand — that's how `listen-this` drifted to its own names; copy the canonical file.
+**A. Static HTML** (mockups, docs pages, prototypes): `<link>` or inline
+`colors_and_type.css`, use the `--halo-*` vars and `.halo-card` /
+`.halo-wordmark` primitives directly. Don't re-derive tokens by hand — that's
+how an app once drifted to its own names; copy the canonical file.
 
 **B. React production** (the sibling-app stack): tokens live in
 `frontend/src/themes.ts` as a typed Emotion `Theme`; components call
@@ -100,8 +101,8 @@ follow it. See the `sibling-app` skill for the app skeleton.
 
 ## Per-app design skill (the layering recipe)
 
-Each app carries its own `.claude/skills/<app>-design/` (e.g. `scribe-design`,
-`chat-design`, halo's own). Because a project skill overrides a same-named
+Each app carries its own `.claude/skills/<app>-design/` (e.g. `<app>-design`).
+Because a project skill overrides a same-named
 plugin skill and plugin skills are namespaced, these coexist with this shared
 one cleanly. A per-app skill should be **thin**:
 
@@ -110,9 +111,8 @@ one cleanly. A per-app skill should be **thin**:
 2. Body: "Shared tokens + conventions come from `halo-design` — copy
    `colors_and_type.css` verbatim. Below is this app's delta."
 3. The four deltas only: glyph SVG, wordmark text, layout/density, voice.
-4. A short "Differences from halo/chat/scribe" table.
+4. A short "Differences from the family baseline" table.
 5. Point at the production source-of-truth files
    (`frontend/src/components/`, `themes.ts`, `Wordmark.tsx`).
 
-Copy an existing per-app skill (scribe-design is a good template) and swap the
-four deltas.
+Copy an existing per-app skill as a template and swap the four deltas.

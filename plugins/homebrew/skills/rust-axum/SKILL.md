@@ -8,14 +8,15 @@ user-invocable: true
 > config) are deliberate and battle-tested for a 1GB Pi. But the crate ecosystem
 > moves — if a newer approach is clearly better for a given app (e.g. a real
 > connection pool when concurrency demands it, or dropping the DB entirely when
-> stateless), take it and note why. The reference is `../scribe/backend`; read it
-> live, versions drift.
+> stateless), take it and note why. Read a sibling app's backend live for a
+> worked example; pin nothing from memory — prefer the latest crate versions.
 
 # rust-axum
 
 ## Decisions
 
-- **axum 0.8** (scribe). chat/halo use actix — older; new backends use axum.
+- **axum** for all new backends. (Some older apps in the family predate it and
+  use actix — don't follow them; new work is axum.)
 - **Type sharing = manual.** No ts-rs/typeshare. `#[derive(Serialize,Deserialize)]`
   structs in a `shared` crate (or just `backend`); TS types hand-written to match.
 - **SQLite via rusqlite, one `Arc<Mutex<Connection>>`** (no pool/sqlx). WAL mode.
@@ -26,6 +27,16 @@ user-invocable: true
   figment/clap/envy.
 - **SPA served by the binary** (frontend-agnostic — see below).
 - **Fail closed:** refuse to boot in prod without required secrets.
+- **One service or many.** Default = one backend binary. Split out separate work
+  (a long-running worker, a different memory/lifecycle profile) into **another
+  crate in the same workspace** — each its own binary, `Config::from_env`, and
+  `/status`, sharing `shared/` types and `[workspace.dependencies]` (e.g. a
+  media-processing worker). When a library has no Rust equivalent, the sidecar
+  lives **outside** the workspace in its own language and is reached over loopback
+  HTTP only (e.g. a small Python service wrapping a vendor SDK). Inter-service
+  calls authenticate with a shared
+  bearer token (constant-time compare, below). The Dockerfile / CI / deploy
+  fan-out for multiple images is `sibling-app`'s.
 
 ## Structure
 
@@ -42,17 +53,19 @@ backend/
     error.rs          # thiserror AppError → IntoResponse
     db.rs             # rusqlite wrapper (omit if stateless)
 shared/               # optional: shared Serialize types
+<worker>/             # optional: more service crates, same shape — own
+                      #   binary/config/status, share shared/
 ```
 
-## Deps (verified — re-check live)
+## Deps (preferred crates — take the latest of each)
 
-`[workspace.dependencies]`: axum `0.8` (`macros`,`tokio`,`tracing`); axum-extra
-`0.12` (`cookie`,`cookie-signed`,`typed-header`); tokio `1` (`full`); tower-http
-`0.6` (`fs`,`set-header`,`trace`,`cors`); reqwest `0.12` (`json`,`rustls-tls`,
-`default-features=false`); serde/serde_json; thiserror `2`; anyhow; tracing +
+`[workspace.dependencies]`, latest versions: axum (`macros`,`tokio`,`tracing`);
+axum-extra (`cookie`,`cookie-signed`,`typed-header`); tokio (`full`); tower-http
+(`fs`,`set-header`,`trace`,`cors`); reqwest (`json`,`rustls-tls`,
+`default-features=false`); serde/serde_json; thiserror; anyhow; tracing +
 tracing-subscriber (`env-filter`); chrono; uuid (`v4`); url; hex; dotenvy;
-rusqlite `0.39` (`bundled`); openidconnect `4` (only if the app does its own
-OIDC — usually not, it's behind oauth2-proxy). dev-deps: `tempfile`, `wiremock`.
+rusqlite (`bundled`); openidconnect (only if the app does its own OIDC — usually
+not, it's behind oauth2-proxy). dev-deps: `tempfile`, `wiremock`.
 
 ## Serving the SPA (frontend-agnostic)
 
@@ -60,7 +73,8 @@ OIDC — usually not, it's behind oauth2-proxy). dev-deps: `tempfile`, `wiremock
 onto every client route (a hard refresh on a sub-route returns 404 with the
 shell body). Serve from a `fallback` handler instead: return the built asset if
 the path maps to a real file under `static_dir`, else `index.html` with 200 so
-the client router owns the route. (Verified the hard way in raspi-dashboard.)
+the client router owns the route. (A regression we hit the hard way in a sibling
+app.)
 
 ```rust
 Router::new()
@@ -126,16 +140,16 @@ version, <upstream>_healthy: bool}` — booleans + version only, no secrets. The
 - **Unit:** inline `#[cfg(test)] mod tests` in the source file. `#[test]` for
   sync, `#[tokio::test]` for async. Test pure logic — parsers, sanitizers,
   `Config::from_env`, constant-time compare, migration idempotency.
-- **Integration:** a `Stack::start()` harness (scribe's `e2e` crate is the model)
-  that spawns the real binary + temp SQLite (`tempfile::tempdir`) + `DEV_AUTH=1`,
+- **Integration:** a `Stack::start()` harness (a dedicated `e2e` crate is the
+  model) that spawns the real binary + temp SQLite (`tempfile::tempdir`) + `DEV_AUTH=1`,
   drives it with a `reqwest` client (`cookie_store(true)`), polls `/status` until
   up, kills children on `Drop`. Tests `#[ignore]`, run in CI via
   `cargo test -p <name>-e2e -- --ignored`.
-- **Mock HTTP upstreams** with `wiremock = "0.6"` (dev-dep) for a fan-in app —
-  stub each upstream incl. 500s and assert graceful handling. (scribe spawns real
-  sidecars instead; for gatus/beszel/file-style fan-in, wiremock is the right
-  call.) Axum handlers are plain async fns — no `axum-test`/`tower::oneshot` in
-  the house style.
+- **Mock HTTP upstreams** with `wiremock` (dev-dep) for a fan-in app — stub each
+  upstream incl. 500s and assert graceful handling. (When the app spawns real
+  sidecars instead, drive those; for an app that fans in third-party HTTP
+  upstreams, wiremock is the right call.) Axum handlers are plain async fns — no
+  `axum-test`/`tower::oneshot` in the house style.
 
 ## Container
 
