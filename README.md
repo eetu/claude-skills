@@ -51,6 +51,14 @@ In a project's `.claude/settings.json`:
 }
 ```
 
+## Develop
+
+```sh
+yarn install          # vendored yarn (yarnPath); deps for lint/format
+./install-hooks.sh    # once after cloning — points core.hooksPath at .githooks
+yarn validate         # prettier --check + markdownlint + skill checks (also the pre-commit gate)
+```
+
 ## Versioning
 
 No `version` pin in `plugin.json` → every commit is an update; installed copies

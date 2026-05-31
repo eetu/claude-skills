@@ -9,8 +9,7 @@
     "lint": "markdownlint-cli2 \"**/*.md\"",
     "lint:fix": "markdownlint-cli2 --fix \"**/*.md\"",
     "validate:skills": "node scripts/validate-skills.mjs",
-    "validate": "yarn format && yarn lint && yarn validate:skills",
-    "prepare": "git config core.hooksPath .githooks"
+    "validate": "yarn format && yarn lint && yarn validate:skills"
   },
   "devDependencies": {
     "markdownlint-cli2": "^0.18.1",
