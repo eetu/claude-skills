@@ -1,0 +1,5 @@
+{
+  "name": "coding-style",
+  "description": "Cross-domain language/code conventions, independent of any app stack. Currently ts-style; future: python-style, git-conventions, etc.",
+  "author": { "name": "Eetu Sutinen" }
+}

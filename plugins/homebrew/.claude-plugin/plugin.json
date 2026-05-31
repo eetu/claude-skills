@@ -1,0 +1,5 @@
+{
+  "name": "homebrew",
+  "description": "House patterns for self-hosted homebrew web apps — shared design language (halo-design) and the Rust(axum)+React sibling-app bootstrap.",
+  "author": { "name": "Eetu Sutinen" }
+}

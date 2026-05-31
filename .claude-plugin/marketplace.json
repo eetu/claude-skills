@@ -1,0 +1,19 @@
+{
+  "name": "eetu-skills",
+  "owner": { "name": "Eetu Sutinen" },
+  "metadata": {
+    "description": "Personal, battle-tested Claude Code skills — house patterns so new projects don't reinvent the wheel."
+  },
+  "plugins": [
+    {
+      "name": "coding-style",
+      "source": "./plugins/coding-style",
+      "description": "Cross-domain language conventions, independent of any app stack. Currently: ts-style (TypeScript/JavaScript house style)."
+    },
+    {
+      "name": "homebrew",
+      "source": "./plugins/homebrew",
+      "description": "House patterns for self-hosted homebrew web apps: shared look (halo-design), frontend (react-spa), backend (rust-axum), and the assembly+deploy orchestrator (sibling-app)."
+    }
+  ]
+}

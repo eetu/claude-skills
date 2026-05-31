@@ -1,0 +1,117 @@
+---
+name: rust-axum
+description: The backend half of a homebrew web app — a Rust axum service that embeds and serves the Vite SPA, fans in upstreams over HTTP/files, and ships as a tiny scratch container. Use when building or working on the Rust backend of a sibling app. Covers structure, deps, config, sqlite, error handling, embedded-SPA serving, plus the house security patterns (CSP, signed cookies, forward-auth trust, fail-closed, constant-time) and the backend test harness (spawned-binary integration + wiremock). Frontend-framework-agnostic — it just serves dist/. Pairs with spa-frontend and sibling-app.
+user-invocable: true
+---
+
+> **Priors, not rails.** These choices (axum, rusqlite-single-mutex, plain-env
+> config) are deliberate and battle-tested for a 1GB Pi. But the crate ecosystem
+> moves — if a newer approach is clearly better for a given app (e.g. a real
+> connection pool when concurrency demands it, or dropping the DB entirely when
+> stateless), take it and note why. The reference is `../scribe/backend`; read it
+> live, versions drift.
+
+# rust-axum
+
+## Decisions
+
+- **axum 0.8** (scribe). chat/halo use actix — older; new backends use axum.
+- **Type sharing = manual.** No ts-rs/typeshare. `#[derive(Serialize,Deserialize)]`
+  structs in a `shared` crate (or just `backend`); TS types hand-written to match.
+- **SQLite via rusqlite, one `Arc<Mutex<Connection>>`** (no pool/sqlx). WAL mode.
+  Idempotent `CREATE TABLE IF NOT EXISTS` migrations every boot; one-shot data
+  migrations gated on `PRAGMA user_version`. **Skip the DB entirely if stateless**
+  (a pure fan-in dashboard has no durable state).
+- **Config = plain `env::var()` → `Config` struct** with `Config::from_env()`. No
+  figment/clap/envy.
+- **SPA served by the binary** (frontend-agnostic — see below).
+- **Fail closed:** refuse to boot in prod without required secrets.
+
+## Structure
+
+```
+Cargo.toml            # [workspace] resolver=2, members + [workspace.dependencies]
+backend/
+  Cargo.toml
+  src/
+    main.rs           # one line: <name>_backend::run_server().await
+    lib.rs            # run_server(): dotenv → tracing → Config::from_env →
+                      #   AppState{Arc<Config>, db?, reqwest::Client} → router → serve
+    config.rs         # Config + from_env()
+    routes.rs         # Router + CSP layer + SPA fallback
+    error.rs          # thiserror AppError → IntoResponse
+    db.rs             # rusqlite wrapper (omit if stateless)
+shared/               # optional: shared Serialize types
+```
+
+## Deps (verified — re-check live)
+
+`[workspace.dependencies]`: axum `0.8` (`macros`,`tokio`,`tracing`); axum-extra
+`0.12` (`cookie`,`cookie-signed`,`typed-header`); tokio `1` (`full`); tower-http
+`0.6` (`fs`,`set-header`,`trace`,`cors`); reqwest `0.12` (`json`,`rustls-tls`,
+`default-features=false`); serde/serde_json; thiserror `2`; anyhow; tracing +
+tracing-subscriber (`env-filter`); chrono; uuid (`v4`); url; hex; dotenvy;
+rusqlite `0.39` (`bundled`); openidconnect `4` (only if the app does its own
+OIDC — usually not, it's behind oauth2-proxy). dev-deps: `tempfile`, `wiremock`.
+
+## Serving the SPA (frontend-agnostic)
+
+```rust
+let static_dir = env::var("STATIC_DIR").unwrap_or_else(|_| "./dist".into());
+let index = format!("{}/index.html", static_dir.trim_end_matches('/'));
+let spa = ServeDir::new(&static_dir).not_found_service(ServeFile::new(index));
+Router::new().route("/status", get(status)) /* …api routes… */
+    .layer(csp_layer())
+    .fallback_service(spa).with_state(state)
+```
+
+It serves whatever `dist/` Vite produced — React or Svelte, no difference here.
+
+## Security (house patterns — apply every time)
+
+- **CSP in-code** via `tower_http::set_header::SetResponseHeaderLayer` on all
+  responses: `default-src 'self'; script-src 'self'; style-src 'self'
+  'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:
+  https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self';
+  frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'`.
+  Extend `img-src`/`media-src` per app. **HSTS / X-Frame-Options /
+  X-Content-Type-Options are Traefik's job**, not the binary's.
+- **Sessions** (only if the app has its own login): `axum-extra` `SignedCookieJar`
+  keyed by `SESSION_KEY` (≥64 hex bytes). Cookie `http_only`, `same_site=Lax`,
+  `secure` in prod, `path=/`. Tiny payload (`sub|email`). Refuse to boot in prod
+  without the key. Most apps skip this — they sit behind oauth2-proxy (see
+  `sibling-app` for the edge trust model + `X-Auth-Request-*` headers).
+- **Service-to-service tokens:** load from env, never log. Constant-time compare
+  with `subtle::ConstantTimeEq`. Bearer in `Authorization` header only (query
+  `?token=` solely where a client can't set headers, and keep those routes out of
+  access logs).
+- **Unauthenticated liveness:** one `GET /status` (or `/ping`) → `{service,
+  version, <upstream>_healthy: bool}` — booleans + version only, no secrets. The
+  Pi's gatus probes these; keep auth-free (and on a Traefik monitor router that
+  bypasses oauth2-proxy if the host is gated).
+- **Input:** parameterized SQL (`rusqlite params!`), path-traversal scrub,
+  `sanitize_next()` on any `?next=` redirect (block `//host` + absolute URLs).
+- Secrets via env only; `.env`, `*.db*`, data dirs in `.gitignore`. Errors via
+  `tracing::error!(?err)` — formatted, never raw secret values.
+
+## Tests (this is where the backend test effort goes — frontend has none)
+
+- **Unit:** inline `#[cfg(test)] mod tests` in the source file. `#[test]` for
+  sync, `#[tokio::test]` for async. Test pure logic — parsers, sanitizers,
+  `Config::from_env`, constant-time compare, migration idempotency.
+- **Integration:** a `Stack::start()` harness (scribe's `e2e` crate is the model)
+  that spawns the real binary + temp SQLite (`tempfile::tempdir`) + `DEV_AUTH=1`,
+  drives it with a `reqwest` client (`cookie_store(true)`), polls `/status` until
+  up, kills children on `Drop`. Tests `#[ignore]`, run in CI via
+  `cargo test -p <name>-e2e -- --ignored`.
+- **Mock HTTP upstreams** with `wiremock = "0.6"` (dev-dep) for a fan-in app —
+  stub each upstream incl. 500s and assert graceful handling. (scribe spawns real
+  sidecars instead; for gatus/beszel/file-style fan-in, wiremock is the right
+  call.) Axum handlers are plain async fns — no `axum-test`/`tower::oneshot` in
+  the house style.
+
+## Container
+
+Multi-stage, cross-compiled to arm64 with `tonistiigi/xx`, runtime = `scratch` +
+binary + `dist` + CA certs. The Dockerfile + CI live in `sibling-app` (they're
+app-level, not backend-only).

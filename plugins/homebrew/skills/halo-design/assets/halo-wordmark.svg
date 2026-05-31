@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" fill="none">
+  <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="3"></circle>
+  <circle cx="32" cy="32" r="6" fill="#f78f08"></circle>
+  <text x="68" y="44" font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="600" letter-spacing="-1.5" fill="currentColor">halo<tspan fill="#f78f08">.</tspan></text>
+</svg>
