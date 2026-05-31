@@ -21,9 +21,14 @@ user-invocable: true
 2. **Dev = Vite dev server + proxy.** `vite.config.ts` `server.proxy` maps
    `/api`, `/auth`, `/status` → the backend port (e.g. `http://localhost:3003`).
    No CORS locally; same-origin in prod.
-3. **Styling from `halo-design`.** Use the canonical `--halo-*` tokens. Copy
-   `colors_and_type.css` in; mirror it into the framework's theme layer. One warm
-   accent, 6px soft cards, light/dark via `prefers-color-scheme`.
+3. **Styling from `halo-design`.** Use the canonical `--halo-*` tokens. How
+   they're sourced is framework-specific (and the app's `CLAUDE.md` is
+   authoritative — follow it): **Svelte** imports `colors_and_type.css` verbatim
+   and reads the vars in `<style>` blocks; **React/Emotion** mirrors the tokens
+   into a typed `themes.ts` (the `css` prop can't read CSS vars), seeded by
+   copying a sibling's `themes.ts` — that TS file is then the in-repo source of
+   truth, not drift. One warm accent, 6px soft cards, light/dark via
+   `prefers-color-scheme`.
 4. **Code from `ts-style`.** Same eslint-config, prettier, import sort, scripts
    (`dev/build/lint/format/typecheck/validate/preview`).
 5. **Data layer = a thin fetch wrapper + cache/revalidate** over the backend's

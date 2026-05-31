@@ -8,14 +8,20 @@ user-invocable: true
 > stands (Rust axum backend + Vite SPA, shipped as one arm64 container, deployed
 > by pyinfra). The framework slot (React today, Svelte under evaluation — see
 > `spa-frontend`) and any tool here are open to better options; keep the seams
-> and the deploy contract, swap the parts, document the change. Reference is
-> `../scribe`; read it live, versions drift.
+> and the deploy contract, swap the parts, document the change. **The
+> single-binary, all-Rust shape is the common case, not a rule** — a domain that
+> needs extra service binaries or a non-Rust sidecar (see "Multi-service &
+> polyglot" below) is still a sibling app, as long as it keeps the seams, the
+> security model, and the deploy contract. Reference is `../scribe` (the worked
+> multi-service example); read it live, versions drift.
 
 # sibling-app
 
-A sibling app = a single Rust (axum) binary that **embeds a Vite SPA**, ships as
-one container to `ghcr.io/eetu/<name>`, and is deployed onto the Pi 4 by
-`../raspi` as a Podman quadlet behind Traefik + oauth2-proxy.
+A sibling app = a Rust (axum) binary that **embeds a Vite SPA**, ships to
+`ghcr.io/eetu/<name>`, and is deployed onto the Pi 4 by `../raspi` as a Podman
+quadlet behind Traefik + oauth2-proxy. Usually that's **one** binary in **one**
+container; some apps add extra service binaries or a non-Rust sidecar, each its
+own image (see "Multi-service & polyglot").
 
 This skill is the index. The pieces live in their own skills:
 
@@ -51,7 +57,37 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   frontend/  # see spa-frontend
   shared/    # optional shared types
   e2e/       # optional integration crate (scribe has one)
+  <worker>/  # optional extra Rust service crate(s) — workers/sidecars
+             #   (scribe: press = ffmpeg worker, shelf = ABS-compat API)
+  <sidecar>/ # optional non-Rust sidecar, own toolchain, NOT in the workspace
+             #   (scribe: shim = Python FastAPI wrapping mkb79/audible)
 ```
+
+## Multi-service & polyglot (only when the domain demands it)
+
+Default to one binary. Split out a second service **only** when work is genuinely
+separate — a long-running worker that mustn't block requests, a component with a
+different memory/lifecycle profile, or one that wraps a library with no Rust
+equivalent. Scribe is the worked example: `backend` (API + SPA), `press` (ffmpeg
+worker), `shelf` (ABS-compat API), and a Python `shim` (Audible auth/library via
+`mkb79/audible`).
+
+- **Extra Rust services** are just more workspace crates (`rust-axum` covers the
+  per-crate shape — each its own binary, config, `/status`). They share
+  `shared/` types and the `[workspace.dependencies]` table.
+- **Non-Rust sidecar** when a library forces the language (Python here for
+  `mkb79/audible`). It lives **outside** the Cargo workspace with its own
+  toolchain (scribe: `uv` + FastAPI + `ruff`), and is reached over **loopback
+  HTTP only** — the main backend never imports it or parses its secrets. This is
+  also the **isolation boundary**: scope sensitive state (credentials, vendor
+  cookies) to the sidecar so a crash/compromise there leaves the cached-data app
+  working. Justify the extra language in the app's `CLAUDE.md`.
+- **Inter-service auth:** loopback isn't trust — services authenticate with a
+  shared bearer token (env, constant-time compare; `rust-axum` security).
+- **One image per service**, each `ghcr.io/eetu/<name>-<svc>`; the tooling below
+  fans out per service (see the per-service notes inline).
+- **Deploy:** one `../raspi` quadlet per service (scribe: `scribe.py` +
+  `scribe_shim.py`); co-locate on the Pi over loopback or split across LAN hosts.
 
 ## Scaffold order
 
@@ -71,8 +107,9 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
 - **Git hooks:** `install-hooks.sh` does `git config core.hooksPath .githooks`.
   `pre-commit` (`set -e`, early-exit on empty staged set) inspects staged paths:
   `frontend/` → `yarn lint` + `yarn format`; `backend|shared|Cargo.*` →
-  `cargo clippy --workspace --all-targets -- -D warnings`. Add a python branch
-  only if the app has one.
+  `cargo clippy --workspace --all-targets -- -D warnings` (covers all Rust
+  service crates at once). Add a branch per non-Rust sidecar (scribe:
+  `shim/*.py|shim/pyproject.toml` → `uv run ruff check src`).
   - **Commit both scripts with the executable bit (mode 755).** Files written by
     an editor/tool land 644, and git stores the mode — a 644 `install-hooks.sh`
     can't be `./`-run, and git **silently skips** a non-executable
@@ -82,8 +119,10 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
     Verify with `git ls-files -s .githooks` → mode must read `100755`.
 - **CI (`ci.yaml`):** `frontend` job (yarn install --immutable → lint, format,
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
-  `Swatinem/rust-cache@v2`, clippy `-D warnings`, `cargo test`, build --release).
-  Add `e2e` job if there's an e2e crate.
+  `Swatinem/rust-cache@v2`, clippy `-D warnings`, `cargo test`, build --release;
+  one job covers the whole Rust workspace). Add `e2e` job if there's an e2e
+  crate. Each non-Rust sidecar gets its own job in its toolchain (scribe `shim`:
+  `astral-sh/setup-uv` → `uv sync --frozen` → `ruff check src`).
 - **`dockerimage.yaml`:** `dorny/paths-filter` gate → QEMU + buildx → ghcr login
   → `docker/metadata-action` (tags: `type=ref,event=branch` for `:main`, semver
   on `v*`, `latest` only on version tags) → `build-push-action`

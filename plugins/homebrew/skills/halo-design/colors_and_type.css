@@ -90,6 +90,13 @@
 
 /* ----------------------------------------------------------------------
  * Card primitive — 6px radius + soft shadow (shadow auto-off in dark).
+ *
+ * Elevation is the SHADOW, not a border. Do NOT add `border: … --halo-border`
+ * to a card: in light mode the border competes with the shadow and muddies the
+ * float (this is the halo-vs-raspi-dashboard regression). Dark mode sets
+ * --halo-shadow: none on purpose — cards there read via bg-main-vs-body
+ * contrast (#252525 on #0f0f0f), still no border. Borders are for internal
+ * hairlines/dividers, not the card edge.
  * -------------------------------------------------------------------- */
 
 .halo-card {

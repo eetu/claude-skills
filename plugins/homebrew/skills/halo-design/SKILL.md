@@ -41,7 +41,9 @@ artifacts _or_ production code as appropriate.
   Everything else is grey. Optional domain hues (warm/cool/etc) only when data
   demands them.
 - **Geometry.** `--halo-radius: 6px`. Cards: 6px radius + soft shadow in light;
-  **shadow off in dark**.
+  **shadow off in dark** (cards read via bg-vs-body contrast there). Card
+  elevation is the shadow — **never a border on the card edge** (a border muddies
+  the light-mode float; borders are for internal hairlines only).
 - **Theme.** Light default; dark via `@media (prefers-color-scheme: dark)`.
   (halo also supports an explicit `[data-theme]` toggle — add only if needed.)
 - **Icons.** Material Icons Outlined. No emoji. No hero imagery.
@@ -87,8 +89,14 @@ hand — that's how `listen-this` drifted to its own names; copy the canonical f
 **B. React production** (the sibling-app stack): tokens live in
 `frontend/src/themes.ts` as a typed Emotion `Theme`; components call
 `useTheme()` and style via the `css={{}}` prop (CSS-in-JS — **not** tailwind /
-CSS-modules). Keep `themes.ts` values in lockstep with `colors_and_type.css`.
-See the `sibling-app` skill for the app skeleton.
+CSS-modules). Here `themes.ts` **is** the in-repo source of truth — `css`-prop
+styling can't read `--halo-*` CSS vars, so the tokens are mirrored once into TS
+and the CSS file is not shipped. Seed a new React app by **copying a sibling's
+`themes.ts` verbatim** (the app's `CLAUDE.md` says which sibling), not by
+re-deriving values from `colors_and_type.css` by hand. Keep the two visually in
+lockstep when the canonical CSS moves; a TS-token React app is **not** "CSS
+drift". The per-app `CLAUDE.md` is authoritative on how its theme is sourced —
+follow it. See the `sibling-app` skill for the app skeleton.
 
 ## Per-app design skill (the layering recipe)
 
