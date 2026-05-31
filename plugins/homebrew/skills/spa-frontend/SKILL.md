@@ -29,13 +29,21 @@ user-invocable: true
 5. **Data layer = a thin fetch wrapper + cache/revalidate** over the backend's
    JSON. Types hand-written to match the Rust structs (no codegen — see
    `sibling-app`).
-6. **Toolchain:** `yarn` 4 (pinned `packageManager`) via corepack, node 24+, CI
-   installs `--immutable`. A tiny `api.ts`-style module centralizes fetches.
-   **node-26 gotcha:** node ≥25 dropped the _bundled_ corepack, so a
-   `node:26-alpine` build image must install it first
-   (`RUN npm i -g corepack@latest && corepack enable`) before `yarn install` —
-   else the build fails with "corepack: command not found" (hit in
-   raspi-dashboard after a dependabot node bump). See `sibling-app`'s Dockerfile.
+6. **Toolchain — Yarn 4, vendored into the repo (no corepack).** Pin + vendor
+   with `yarn set version <ver> --yarn-path`: it commits
+   `.yarn/releases/yarn-<ver>.cjs` and sets `yarnPath` in `.yarnrc.yml`. The
+   `--yarn-path` flag is **required** — modern `yarn set version` only bumps the
+   `packageManager` field otherwise (it won't write the binary). The build image
+   then invokes `node .yarn/releases/yarn-*.cjs install --immutable` — **no
+   corepack, no global yarn, independent of the node version** (node ≥25 dropped
+   the bundled corepack; vendoring sidesteps it entirely). Commit the `.cjs`
+   (berry's `.gitignore` drops `.yarn/cache`/`install-state` but keeps
+   `.yarn/releases`). **Bump** = re-run `set version <newer> --yarn-path` then
+   refresh the lockfile with a plain `yarn install` (the bump fails `--immutable`
+   until the lock is regenerated); dependabot won't touch the vendored binary.
+   Local dev keeps a corepack `yarn` shim that transparently delegates to the
+   vendored release, so hooks/CLI still just call `yarn`. CI installs
+   `--immutable`. A tiny `api.ts`-style module centralizes fetches.
 7. **Icons + install metadata (every app — don't skip).** Ship a home-screen-
    installable icon set in the Vite static dir (`static/` SvelteKit, `public/`
    React) so iOS/Android installs aren't blank. See the recipe below.
