@@ -89,9 +89,12 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   cooldowns (major 14d/minor 7d/patch 5d); group react/tanstack/axum/tokio;
   ignore eslint major.
 - **Dockerfile:** multi-stage, `tonistiigi/xx` cross-compile → `scratch`. Stages:
-  `frontend-build` (node 24-alpine, `yarn build` — framework-agnostic) →
+  `frontend-build` (node 24+-alpine, `yarn build` — framework-agnostic; on
+  `node:26-alpine` install corepack first: `RUN npm i -g corepack@latest &&
+corepack enable` — node ≥25 dropped the bundled corepack, hit in
+  raspi-dashboard via a dependabot bump) →
   `workspace-deps` (warm cargo cache) → `backend-build` → `runner` (scratch +
-  binary + dist + certs). node 24 throughout.
+  binary + dist + certs). node 24+ throughout (see corepack note above).
 
 ### Per-app substitutions
 

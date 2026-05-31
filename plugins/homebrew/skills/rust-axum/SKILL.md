@@ -56,16 +56,43 @@ OIDC — usually not, it's behind oauth2-proxy). dev-deps: `tempfile`, `wiremock
 
 ## Serving the SPA (frontend-agnostic)
 
+**Do NOT use `ServeDir.not_found_service(ServeFile)`** — it leaks a 404 status
+onto every client route (a hard refresh on a sub-route returns 404 with the
+shell body). Serve from a `fallback` handler instead: return the built asset if
+the path maps to a real file under `static_dir`, else `index.html` with 200 so
+the client router owns the route. (Verified the hard way in raspi-dashboard.)
+
 ```rust
-let static_dir = env::var("STATIC_DIR").unwrap_or_else(|_| "./dist".into());
-let index = format!("{}/index.html", static_dir.trim_end_matches('/'));
-let spa = ServeDir::new(&static_dir).not_found_service(ServeFile::new(index));
-Router::new().route("/status", get(status)) /* …api routes… */
+Router::new()
+    .route("/status", get(status)) /* …api routes… */
     .layer(csp_layer())
-    .fallback_service(spa).with_state(state)
+    .fallback(get(serve_spa))          // NOT fallback_service(ServeDir…)
+    .with_state(state)
+
+async fn serve_spa(State(state): State<AppState>, uri: Uri) -> Response {
+    let base = &state.cfg.static_dir;
+    let rel = uri.path().trim_start_matches('/');
+    if !rel.is_empty() {
+        let cand = base.join(rel);
+        // canonicalize + starts_with(base) → rejects `..` traversal / escapes
+        if let (Ok(c), Ok(b)) = (cand.canonicalize(), base.canonicalize()) {
+            if c.starts_with(&b) && c.is_file() {
+                if let Ok(bytes) = tokio::fs::read(&c).await {
+                    let mime = mime_guess::from_path(&c).first_or_octet_stream();
+                    return ([(CONTENT_TYPE, mime.as_ref())], bytes).into_response();
+                }
+            }
+        }
+    }
+    match tokio::fs::read_to_string(base.join("index.html")).await {
+        Ok(html) => Html(html).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "not found").into_response(),
+    }
+}
 ```
 
-It serves whatever `dist/` Vite produced — React or Svelte, no difference here.
+Adds a `mime_guess` dep. Serves whatever `dist/` Vite produced — React or
+Svelte, no difference here.
 
 ## Security (house patterns — apply every time)
 

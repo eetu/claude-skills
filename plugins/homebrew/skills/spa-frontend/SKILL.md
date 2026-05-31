@@ -29,8 +29,13 @@ user-invocable: true
 5. **Data layer = a thin fetch wrapper + cache/revalidate** over the backend's
    JSON. Types hand-written to match the Rust structs (no codegen — see
    `sibling-app`).
-6. **Toolchain:** `yarn` 4 (pinned `packageManager`), node 24, CI installs
-   `--immutable`. A tiny `api.ts`-style module centralizes fetches.
+6. **Toolchain:** `yarn` 4 (pinned `packageManager`) via corepack, node 24+, CI
+   installs `--immutable`. A tiny `api.ts`-style module centralizes fetches.
+   **node-26 gotcha:** node ≥25 dropped the _bundled_ corepack, so a
+   `node:26-alpine` build image must install it first
+   (`RUN npm i -g corepack@latest && corepack enable`) before `yarn install` —
+   else the build fails with "corepack: command not found" (hit in
+   raspi-dashboard after a dependabot node bump). See `sibling-app`'s Dockerfile.
 7. **Icons + install metadata (every app — don't skip).** Ship a home-screen-
    installable icon set in the Vite static dir (`static/` SvelteKit, `public/`
    React) so iOS/Android installs aren't blank. See the recipe below.

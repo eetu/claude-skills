@@ -13,7 +13,7 @@
     {
       "name": "homebrew",
       "source": "./plugins/homebrew",
-      "description": "House patterns for self-hosted homebrew web apps: shared look (halo-design), frontend (react-spa), backend (rust-axum), and the assembly+deploy orchestrator (sibling-app)."
+      "description": "House patterns for self-hosted homebrew web apps: shared look (halo-design), frontend (spa-frontend), backend (rust-axum), and the assembly+deploy orchestrator (sibling-app)."
     }
   ]
 }

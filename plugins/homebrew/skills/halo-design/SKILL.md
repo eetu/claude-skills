@@ -50,7 +50,7 @@ artifacts _or_ production code as appropriate.
 
 ## Wordmark
 
-`.hcc-wordmark`: Inter 600, lowercase, `letter-spacing: -0.04em`, with an accent
+`.halo-wordmark`: Inter 600, lowercase, `letter-spacing: -0.04em`, with an accent
 period/dot. House convention: the full wordmark is a short, dry pop-culture
 riff ending in the app's own name, which **collapses to the bare app name** (+
 accent dot) below the mobile breakpoint. The brand reads in the same typeface as
