@@ -5,11 +5,12 @@ user-invocable: true
 ---
 
 > **Priors, not rails — and the framework is explicitly a slot.** React is the
-> current default by inertia: all four apps (halo, chat, scribe, listen-this)
-> use it. That is *not* a mandate. The stable thing is the **contract** below;
-> the framework that fulfills it is swappable. Svelte is under active evaluation
-> (see below) and may be the better fit going forward — choosing it for a new
-> app is encouraged. Keep the contract, swap the instantiation, document it here.
+> current default by inertia: four apps (halo, chat, scribe, listen-this) use
+> it. That is _not_ a mandate. The stable thing is the **contract** below; the
+> framework that fulfills it is swappable. **Svelte has now shipped** in
+> raspi-dashboard (the verified stack is specified below, on par with the React
+> section) and is the recommended choice for a new app. Keep the contract, swap
+> the instantiation, document it here.
 
 # spa-frontend
 
@@ -45,26 +46,48 @@ user-invocable: true
   arrow callbacks, `type` props). `Wordmark.tsx` + `themes.ts` are the canonical
   brand/theme files to copy forward.
 
-## Svelte (under active evaluation — preferred-feeling, not yet shipped)
+## Svelte instantiation (shipped in raspi-dashboard — verified stack)
 
-Why on the table: lighter runtime and smaller compiled output (good on a Pi 4);
-**scoped `<style>` blocks consuming `--halo-*` CSS vars are a more natural fit for
-`halo-design` than a CSS-in-JS runtime** — the tokens drop straight in. ts-style
-and the whole contract above still apply (Svelte is TS-first).
+Why chosen: lighter runtime and smaller compiled output (good on a Pi 4);
+**scoped `<style>` blocks consuming `--halo-*` CSS vars are a more natural fit
+for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
+`themes.ts`/Emotion layer. ts-style and the whole contract above still apply
+(Svelte is TS-first). Reference app: `../raspi-dashboard/frontend`.
 
-Contract mapping (principle-level — **verify against current docs with
-`find-docs` at adoption; don't trust these specifics from memory**):
+- **SvelteKit 2 + Svelte 5 (runes) + Vite 8**, scaffolded with `npx sv create
+  <dir> --template minimal --types ts --no-add-ons`. Runes mode is on by default
+  in the generated `svelte.config.js`.
+- **Adapter = `@sveltejs/adapter-static` in pure-SPA mode.** No server logic (no
+  `+*.server.ts` / `+server.ts`). Config:
+  ```js
+  adapter: adapter({ pages: 'dist', assets: 'dist', fallback: 'index.html', strict: true })
+  ```
+  Root `src/routes/+layout.ts`: `export const ssr = false; export const prerender = false;`
+  - **`pages/assets: 'dist'`** matches the family convention (rust-axum's
+    `STATIC_DIR` + the Dockerfile embed `dist/`; SvelteKit's default is `build/`).
+  - **`fallback: 'index.html'`** (not the docs' `200.html`): in pure-SPA mode
+    adapter-static emits ONLY the fallback file, and the backend serves
+    `index.html` for `/` and every unmatched path. Naming the fallback
+    `index.html` makes the two line up with no backend change. **Backend note:**
+    tower-http `ServeDir.not_found_service` leaks a 404 status onto client
+    routes — raspi-dashboard's backend instead serves the SPA via a small fs
+    handler (200 + content-type + path-traversal guard). See rust-axum.
+- **Styling:** import `colors_and_type.css` globally in `+layout.svelte`
+  (copied verbatim to `src/lib/styles/halo.css`); use `--halo-*` in component
+  `<style>` blocks. A shared `Panel.svelte` card + `Wordmark.svelte` are the
+  copy-forward brand/layout files (vs React's `themes.ts` + `Wordmark.tsx`).
+- **Data:** the same thin `api.ts` fetch wrapper (types hand-mirrored from the
+  Rust structs) + a `createResource()` rune helper in a `.svelte.ts` module
+  (poll/SWR-ish: reactive `data/error/loading`, started/stopped from an
+  `$effect`). No `swr`.
+- **Routing:** SvelteKit file-based routes. Single-view apps just use `+page.svelte`.
+- **Lint/format deltas (the one real gap):** the shared `eslint-config` has
+  `node`/`react` exports but **no Svelte preset**. Layer it: base config +
+  `eslint-plugin-svelte` v3 (`...svelte.configs.recommended`) with a `.svelte`
+  block setting `parserOptions.parser: ts.parser` + `svelteConfig`. Prettier
+  needs `prettier-plugin-svelte`. `typecheck` = `svelte-check` (not `tsc`).
+  Scripts otherwise identical (`dev/build/lint/format/typecheck/validate`).
 
-- Build: Vite + the Svelte plugin → `dist/`. For an embedded SPA, SvelteKit with
-  `adapter-static` (SPA/fallback mode) or a plain Svelte+Vite SPA — confirm the
-  current adapter story before committing.
-- Styling: import `colors_and_type.css` globally; use `--halo-*` in component
-  `<style>` blocks. No themes.ts/Emotion layer needed.
-- State/data: keep the same fetch wrapper; use runes/stores (or a small SWR-like
-  cache) instead of `swr`.
-- Routing: SvelteKit routing or a small SPA router.
-
-When the first Svelte app ships, fill this section with the verified concrete
-stack (versions, adapter, router) the way the React section is specified, and
-note any deltas in `sibling-app`'s Dockerfile/CI (the `frontend-build` stage is
-just `yarn build`, so it's largely unaffected).
+Dockerfile/CI deltas vs React: **none of substance** — the `frontend-build`
+stage is still just `yarn build`, and CI's frontend job runs the same
+`lint/format/typecheck/build`. Only `typecheck` resolves to `svelte-check`.
