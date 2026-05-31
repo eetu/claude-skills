@@ -31,6 +31,45 @@ user-invocable: true
    `sibling-app`).
 6. **Toolchain:** `yarn` 4 (pinned `packageManager`), node 24, CI installs
    `--immutable`. A tiny `api.ts`-style module centralizes fetches.
+7. **Icons + install metadata (every app — don't skip).** Ship a home-screen-
+   installable icon set in the Vite static dir (`static/` SvelteKit, `public/`
+   React) so iOS/Android installs aren't blank. See the recipe below.
+
+## Icons & PWA metadata (how to create + regenerate)
+
+Touch devices need a real PNG `apple-touch-icon` (iOS ignores SVG favicons for
+the home screen) plus a web manifest for Android/PWA install. The house setup
+(reference: `../raspi-dashboard/frontend`):
+
+- **Source SVGs** (committed, hand-edited — the per-app glyph from the design
+  skill, on an _opaque_ bg):
+  - `favicon.svg` — full-bleed glyph: the SVG favicon + raster source for the
+    any-purpose / apple-touch icons.
+  - `icon-maskable.svg` — same glyph shrunk to the maskable safe zone (~60%
+    centre) so Android's adaptive mask can't clip it.
+- **Generated PNGs** (committed, so the build needs no rasterizer) via a
+  `scripts/gen-icons.sh` using **librsvg** (`brew install librsvg`). Rerun it
+  after editing a source SVG; copy the script forward verbatim:
+
+```bash
+rsvg-convert -w 180 -h 180 favicon.svg       -o apple-touch-icon.png
+rsvg-convert -w 192 -h 192 favicon.svg       -o icon-192.png
+rsvg-convert -w 512 -h 512 favicon.svg       -o icon-512.png
+rsvg-convert -w 32  -h 32  favicon.svg       -o favicon-32.png
+rsvg-convert -w 192 -h 192 icon-maskable.svg -o icon-192-maskable.png
+rsvg-convert -w 512 -h 512 icon-maskable.svg -o icon-512-maskable.png
+```
+
+- **`manifest.webmanifest`**: `name`, `short_name`, `description`,
+  `display: standalone`, `start_url: "/"`, `background_color` (`--halo-body`),
+  `theme_color`, and `icons` with both `purpose: "any"` (192/512) and
+  `purpose: "maskable"` (192/512).
+- **HTML head** (`app.html` for SvelteKit, `index.html` for React/Vite — same
+  tags): `icon` (svg + 32px png), `apple-touch-icon`, `manifest`, `theme-color`
+  (light + dark via `media`), `mobile-web-app-capable` +
+  `apple-mobile-web-app-capable`, `apple-mobile-web-app-title`. `viewport` is
+  already in the template. Don't put these in a component `<svelte:head>` — keep
+  them in the static HTML shell so they're present pre-hydration.
 
 ## React instantiation (current default — verified across the 4 apps)
 
