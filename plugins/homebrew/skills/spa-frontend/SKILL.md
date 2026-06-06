@@ -48,7 +48,17 @@ user-invocable: true
    until the lock is regenerated); dependabot won't touch the vendored binary.
    Local dev keeps a corepack `yarn` shim that transparently delegates to the
    vendored release, so hooks/CLI still just call `yarn`. CI installs
-   `--immutable`. A tiny `api.ts`-style module centralizes fetches.
+   `--immutable`.
+   **Node** is pinned separately in a `.node-version` file at the frontend root
+   (e.g. `26`) — the single source of truth. CI's `setup-node` reads it via
+   `node-version-file: frontend/.node-version` (**never** a hardcoded
+   `node-version: 24` literal — it silently drifts: dependabot bumps the
+   Dockerfile's `node:<v>-alpine` but can't touch a CI literal or
+   `.node-version`). The Dockerfile's `frontend-build` `FROM node:<v>-alpine`
+   matches the file; bump all three in lockstep. (Vendored yarn is
+   node-independent, so this pin is purely for reproducible builds + local-dev
+   parity, not a yarn requirement.) A tiny `api.ts`-style module centralizes
+   fetches.
 7. **Icons + install metadata (every app — don't skip).** Ship a home-screen-
    installable icon set in the Vite static dir (`static/` SvelteKit, `public/`
    React) so iOS/Android installs aren't blank. See the recipe below.

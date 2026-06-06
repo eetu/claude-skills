@@ -55,7 +55,7 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   .github/{workflows/{ci,dockerimage,automerge,cve-scan}.yaml, dependabot.yaml}
   .claude/skills/<name>-design/     # thin per-app design skill (see halo-design)
   backend/   # see rust-axum
-  frontend/  # see spa-frontend
+  frontend/  # see spa-frontend — has .node-version + vendored .yarn/releases
   shared/    # optional shared types
   e2e/       # optional integration crate
   <worker>/  # optional extra Rust service crate(s) — workers/sidecars
@@ -117,7 +117,8 @@ compat-API service, and a Python `shim` wrapping a vendor SDK.
     creating them: `chmod +x install-hooks.sh .githooks/*` **then** `git add`
     (or, if already committed wrong, `git update-index --chmod=+x <file>`).
     Verify with `git ls-files -s .githooks` → mode must read `100755`.
-- **CI (`ci.yaml`):** `frontend` job (yarn install --immutable → lint, format,
+- **CI (`ci.yaml`):** `frontend` job (`setup-node` with `node-version-file:
+frontend/.node-version` → yarn install --immutable → lint, format,
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
   `Swatinem/rust-cache@v2`, clippy `-D warnings`, `cargo test`, build --release;
   one job covers the whole Rust workspace). Add `e2e` job if there's an e2e
@@ -131,14 +132,17 @@ compat-API service, and a Python `shim` wrapping a vendor SDK.
   service** — repeat the build-push per service (build each service's image),
   each its own target stage + ghcr repo + paths-filter gate.
 - **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'`, uses the house
-  automerge action. **`cve-scan.yaml`:** weekly trivy, SARIF → Security
+  automerge action. Permissions need `contents: write` + `pull-requests: write`
+  **and** `checks: read` + `statuses: read` + `actions: read` — the action's
+  `statusCheckRollup` GraphQL query walks `checkSuite.workflowRun`, which fails
+  with "Resource not accessible by integration" if those read scopes are absent. **`cve-scan.yaml`:** weekly trivy, SARIF → Security
   tab, report-only; matrix over every service image (per-image SARIF category).
 - **`dependabot.yaml`:** npm(`/frontend`) + cargo(`/`) + docker + github-actions,
   **plus one ecosystem per non-Rust sidecar** (e.g. pip at `/shim`);
   cooldowns (major 14d/minor 7d/patch 5d); group react/tanstack/axum/tokio;
   ignore eslint major.
 - **Dockerfile:** multi-stage, `tonistiigi/xx` cross-compile → `scratch`. Stages:
-  `frontend-build` (`node:<latest>-alpine`) — COPY the manifest + `yarn.lock` +
+  `frontend-build` (`node:<v>-alpine`, `<v>` matching `frontend/.node-version`) — COPY the manifest + `yarn.lock` +
   `.yarnrc.yml` + `.yarn/releases`, then `RUN node .yarn/releases/yarn-*.cjs
 install --immutable` and `… build`. **Vendored yarn, no corepack** (see
   `spa-frontend`), so the stage is independent of the node version. →
