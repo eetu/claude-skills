@@ -46,7 +46,12 @@ artifacts _or_ production code as appropriate.
   the light-mode float; borders are for internal hairlines only).
 - **Theme.** Light default; dark via `@media (prefers-color-scheme: dark)`.
   (halo also supports an explicit `[data-theme]` toggle — add only if needed.)
-- **Icons.** Material Icons Outlined. No emoji. No hero imagery.
+- **Icons.** [Lucide](https://lucide.dev) — the house icon set. No emoji, no
+  hero imagery. Install the framework pack (Svelte: `@lucide/svelte`, React:
+  `lucide-react`) and import per-icon for tree-shaking
+  (`import RotateCw from "@lucide/svelte/icons/rotate-cw"`). Icons stroke in
+  `currentColor`, so they inherit text colour — size ~18px inline, default
+  stroke. (Was Material Icons Outlined; migrate on next touch.)
 - **Motion.** Calm, with small wow moments: 150ms reveals, gentle pulses,
   counters that ease to new values. Restraint over flourish.
 
