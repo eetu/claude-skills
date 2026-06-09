@@ -52,11 +52,11 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
 <name>/
   Cargo.toml Cargo.lock Dockerfile .dockerignore .gitignore
   install-hooks.sh  .githooks/pre-commit
-  README.md  SECURITY.md
+  README.md  SECURITY.md  CLAUDE.md     # root CLAUDE.md — repo overview (see below)
   .github/{workflows/{ci,dockerimage,automerge,cve-scan}.yaml, dependabot.yaml}
   .claude/skills/<name>-design/     # thin per-app design skill (see halo-design)
-  backend/   # see rust-axum
-  frontend/  # see spa-frontend — has .node-version + vendored .yarn/releases
+  backend/   # see rust-axum — carries its own CLAUDE.md
+  frontend/  # see spa-frontend — has .node-version + vendored .yarn/releases + CLAUDE.md
   shared/    # optional shared types
   e2e/       # optional integration crate
   <worker>/  # optional extra Rust service crate(s) — workers/sidecars
@@ -64,6 +64,26 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   <sidecar>/ # optional non-Rust sidecar, own toolchain, NOT in the workspace
              #   (e.g. a Python FastAPI service wrapping a vendor SDK)
 ```
+
+## Docs (CLAUDE.md — root + per-area)
+
+Every app carries a **root `CLAUDE.md`** plus **one per service/area** (`backend/`,
+`frontend/`, and each extra crate/sidecar — `press/`, `shim/`, …). README is for
+humans; CLAUDE.md is the agent's map. Keep them terse; don't repeat what the code
+or a skill already says — record the non-obvious invariants.
+
+Root `CLAUDE.md` structure (see `chat/CLAUDE.md`, `scribe/CLAUDE.md`):
+
+- `# <app> — repo overview` — one line on what it is + sibling links.
+- `## Layout` — a fenced tree of top-level dirs, each with a one-line role.
+- `## Conventions` — the load-bearing invariants: auth model, per-user data
+  isolation, resource budgets, polling/streaming contracts, anything a change
+  could silently break.
+- `## Working on this repo` — ports, dev commands, `DEV_AUTH`, proxy notes.
+- `## Out of scope` — what's deliberately not built, so it isn't "added" by accident.
+
+Per-area `CLAUDE.md` is shorter — just that area's specifics (e.g. `frontend/`
+documents `yarn validate`; `backend/` notes the module map + loops/upstreams).
 
 ## Multi-service & polyglot (only when the domain demands it)
 
