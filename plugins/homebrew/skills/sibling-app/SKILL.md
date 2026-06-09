@@ -138,6 +138,11 @@ compat-API service, and a Python `shim` wrapping a vendor SDK.
     creating them: `chmod +x install-hooks.sh .githooks/*` **then** `git add`
     (or, if already committed wrong, `git update-index --chmod=+x <file>`).
     Verify with `git ls-files -s .githooks` → mode must read `100755`.
+- **Actions are SHA-pinned.** Every `uses:` across all workflows pins a full
+  commit SHA with a same-line `# vX` comment
+  (`uses: actions/checkout@<sha> # v6`) — tamper-evident, and dependabot still
+  bumps the SHA + rewrites the comment. Exception: rolling selectors like
+  `dtolnay/rust-toolchain@stable` stay on the tag (pinning would freeze them).
 - **CI (`ci.yaml`):** `frontend` job (`setup-node` with `node-version-file:
 frontend/.node-version` → yarn install --immutable → lint, format,
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
@@ -153,15 +158,23 @@ frontend/.node-version` → yarn install --immutable → lint, format,
   service** — repeat the build-push per service (build each service's image),
   each its own target stage + ghcr repo + paths-filter gate.
 - **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'`, uses the house
-  automerge action. Permissions need `contents: write` + `pull-requests: write`
-  **and** `checks: read` + `statuses: read` + `actions: read` — the action's
-  `statusCheckRollup` GraphQL query walks `checkSuite.workflowRun`, which fails
-  with "Resource not accessible by integration" if those read scopes are absent. **`cve-scan.yaml`:** weekly trivy, SARIF → Security
-  tab, report-only; matrix over every service image (per-image SARIF category).
+  automerge action on the plain `GITHUB_TOKEN` (`contents: write` +
+  `pull-requests: write` — no extra read scopes needed). **Skip github-actions
+  bumps:** add `&& !startsWith(github.head_ref, 'dependabot/github_actions')` to
+  the job `if`. Those PRs edit `.github/workflows/*`, which `GITHUB_TOKEN` cannot
+  merge (no `workflows` permission scope exists) — the run would fail with a red
+  X. Merge them by hand (you want to eyeball CI changes anyway); a long-lived
+  PAT/App token just for action bumps is too much attack surface to justify.
+  The skip makes the job _skipped_, not failed. **`cve-scan.yaml`:** weekly
+  trivy, SARIF → Security tab, report-only; matrix over every service image
+  (per-image SARIF category).
 - **`dependabot.yaml`:** npm(`/frontend`) + cargo(`/`) + docker + github-actions,
-  **plus one ecosystem per non-Rust sidecar** (e.g. pip at `/shim`);
-  cooldowns (major 14d/minor 7d/patch 5d); group react/tanstack/axum/tokio;
-  ignore eslint major.
+  **plus one ecosystem per non-Rust sidecar** (e.g. pip/uv at `/shim`, `/backend`);
+  group react/tanstack/axum/tokio; ignore eslint major. **Cooldown rule:** code
+  ecosystems (npm/cargo/pip/uv) get the full set — `default-days: 7`,
+  `semver-major-days: 14`, `semver-minor-days: 7`, `semver-patch-days: 5`;
+  **docker + github-actions take `default-days` only** — the `semver-*` keys
+  silently break parsing for those two ecosystems.
 - **Dockerfile:** multi-stage, `tonistiigi/xx` cross-compile → `scratch`. Stages:
   `frontend-build` (`node:<v>-alpine`, `<v>` matching `frontend/.node-version`) — COPY the manifest + `yarn.lock` +
   `.yarnrc.yml` + `.yarn/releases`, then `RUN node .yarn/releases/yarn-*.cjs
