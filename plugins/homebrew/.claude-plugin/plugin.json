@@ -1,5 +1,5 @@
 {
   "name": "homebrew",
-  "description": "House patterns for self-hosted homebrew web apps — shared design language (halo-design) and the Rust(axum)+React sibling-app bootstrap.",
+  "description": "House patterns for self-hosted homebrew web apps — shared design language (halo-design), the Rust(axum)+React sibling-app bootstrap, and the Python (FastAPI) escape hatch (python-service) for hardware/vendor libs.",
   "author": { "name": "Eetu Sutinen" }
 }

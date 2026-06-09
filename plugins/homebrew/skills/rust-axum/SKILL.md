@@ -16,7 +16,9 @@ user-invocable: true
 ## Decisions
 
 - **axum** for all new backends. (Some older apps in the family predate it and
-  use actix — don't follow them; new work is axum.)
+  use actix — don't follow them; new work is axum.) The one exception is a
+  Python-only domain lib (hardware SDK, vendor client) — then FastAPI, see
+  `python-service` (as a loopback sidecar behind axum, or the whole backend).
 - **Type sharing = manual.** No ts-rs/typeshare. `#[derive(Serialize,Deserialize)]`
   structs in a `shared` crate (or just `backend`); TS types hand-written to match.
 - **SQLite via rusqlite, one `Arc<Mutex<Connection>>`** (no pool/sqlx). WAL mode.

@@ -31,6 +31,7 @@ This skill is the index. The pieces live in their own skills:
 | Visual identity (tokens, wordmark, glyph) | `halo-design`                    |
 | Frontend SPA (contract + React/Svelte)    | `spa-frontend`                   |
 | Rust backend + security impl + tests      | `rust-axum`                      |
+| Python backend/sidecar (hardware/vendor)  | `python-service`                 |
 | TS/JS code conventions                    | `ts-style` (coding-style plugin) |
 
 If invoked with no concrete task, ask what the app does, then walk the scaffold.
