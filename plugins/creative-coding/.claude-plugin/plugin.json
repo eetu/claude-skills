@@ -1,0 +1,5 @@
+{
+  "name": "creative-coding",
+  "description": "Generative / canvas visual effects, independent of any app stack: ascii-artist (rendering images, logos, and text as animated ASCII on a <canvas> — masks, density ramps, particle systems, fbm-noise fields, pseudo-3D, and the performance rules that keep it cheap). Future: shaders, svg-motion, etc.",
+  "author": { "name": "Eetu Sutinen" }
+}

@@ -14,6 +14,11 @@
       "name": "homebrew",
       "source": "./plugins/homebrew",
       "description": "House patterns for self-hosted homebrew web apps: shared look (halo-design), frontend (spa-frontend), backend (rust-axum), and the assembly+deploy orchestrator (sibling-app)."
+    },
+    {
+      "name": "creative-coding",
+      "source": "./plugins/creative-coding",
+      "description": "Generative / canvas visual effects independent of any app stack: ascii-artist (animated ASCII art — masks, density ramps, particle systems, fbm-noise fields, pseudo-3D, performance rules, single-file delivery)."
     }
   ]
 }
