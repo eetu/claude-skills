@@ -1,6 +1,6 @@
 ---
 name: ascii-artist
-description: Render images, logos, and text as animated ASCII art on an HTML <canvas> — masks sampled from a source image, density-ramp glyphs, particle systems (rain/snow/vapor/sparks), fbm-noise fields (clouds/fog/fire/plasma), and a cheap pseudo-3D camera. Use when building a generative/ASCII canvas effect, an animated logo or splash, a text-to-ASCII renderer, or weather/elemental motion (frost, fire, smoke). Carries the house performance rules that keep these animations from cooking the CPU, plus a recipe for shipping a single self-contained HTML file. Reference implementation: the invinite frozen-gear logo (eetu/logo).
+description: Render images, logos, and text as animated ASCII art on an HTML <canvas> — masks sampled from a source image, density-ramp glyphs, particle systems (rain/snow/vapor/sparks), fbm-noise fields (clouds/fog/fire/plasma), and a cheap pseudo-3D camera. Use when building a generative/ASCII canvas effect, an animated logo or splash, a text-to-ASCII renderer, or weather/elemental motion (frost, fire, smoke). Carries the house performance rules that keep these animations from cooking the CPU. Reference implementation: the invinite frozen-gear logo (eetu/logo).
 user-invocable: true
 ---
 
@@ -77,9 +77,23 @@ const glyph = GLYPHS[(h >>> 3) % GLYPHS.length]; // use >>> for array indices
   yaw (`sin(t·s)`) ± a little pitch, project with perspective
   `s = focal/(focal+z')`, then **depth-sort** (far→near) and depth-shade
   (nearer = brighter/larger). Even a tiny relief reads as 3D under a gentle pan.
+  For parallax that follows the user, drive the yaw/pitch from the **pointer or
+  device tilt**, eased toward the target with a dt-based factor
+  (`a += (target-a)·(1-exp(-dt·k))`) so it glides instead of snapping.
+- **Specular glint** that reads as a lit 3D surface (vs a flat rotating wedge):
+  give each cell a hemisphere dome normal `N`, and brightness
+  `pow(max(0, N·H), k)` where `H` is the normalized half-vector of a slowly
+  orbiting light plus the `+z` view direction. The highlight rakes _across_ the
+  relief as the light moves.
+- **Additive bloom**: a second pass over the brightest cells with
+  `globalCompositeOperation = "lighter"`, stamping a soft radial-gradient sprite
+  — gives glints/embers a halo. Flip the composite mode once per frame, not per
+  cell.
 - **Colour**: define a few palette stops and `lerp` between them by a lightness
   param; keep alpha low for backgrounds, high for foreground marks. Tint per
-  effect (ice blue, ember orange, etc.).
+  effect (ice blue, ember orange, etc.). A travelling "event" can recolour cells
+  toward a second palette (e.g. a melt front blending ice→magma) keyed off a
+  per-cell phase so it sweeps across the mark.
 
 ## Performance — the rules that matter (the why)
 
@@ -93,23 +107,20 @@ These are where canvas ASCII goes wrong. In rough order of impact:
 - **Cache gradients.** Build radial/linear gradients once (on resize), modulate
   with `globalAlpha`; never `createRadialGradient` + full-screen fill per frame.
 - **Cap DPR** to ~1.5. `devicePixelRatio` 2–3 multiplies every fill; 1.5 is
-  plenty for glyphs.
+  plenty for glyphs. Drop to ~1.25 on touch (`pointer: coarse`) — phones are
+  fill-rate bound, especially with big soft sprites.
+- **Throttle the depth-sort.** The far→near order drifts slowly under a gentle
+  pan, so re-sort every ~8 frames, not every frame (~85% less sort work). Still
+  project every cell every frame — it's only the sort you skip.
 - **No per-frame allocations** in the loop. Write projection results onto the
   cell objects; reuse a draw-order index array; pre-render sprites.
 - **Pause when hidden** (`visibilitychange` → `cancelAnimationFrame`). Zero CPU
   in a background tab — important for always-on / wall displays.
 - **Respect `prefers-reduced-motion`** — render a single static frame, no loop.
 
-## Shipping a single file
-
-Develop with assets as separate files (`new Audio("wow.mp3")`, etc.) so they're
-editable; ship one self-contained `.html` via a tiny build step that inlines
-each referenced asset as a `data:` URI. A ~40-line `build.mjs` (scan referenced
-filenames → base64 → replace) is enough — see eetu/logo `build.mjs`. The result
-drops into any static host or a 2-line nginx Dockerfile.
-
 ## Reference
 
 `eetu/logo` — the invinite frozen-gear mark: image→mask, frost density ramp,
-freeze-in reveal, rotating ice highlight, cryo-vapour sprites, falling sparkle
-shards, a dome + yaw camera, and the full performance + single-file-build setup.
+freeze-in reveal, a specular ice glint, a magma melt/refreeze cycle, additive
+bloom, cryo-vapour sprites, falling sparkle shards, and a pointer-driven dome +
+yaw camera — with the full performance setup.
