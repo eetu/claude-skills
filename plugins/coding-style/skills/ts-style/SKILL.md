@@ -1,6 +1,6 @@
 ---
 name: ts-style
-description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared eslint-config (github:eetu/eslint-config). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
+description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/eslint-config (npm package). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
 user-invocable: true
 ---
 
@@ -43,9 +43,13 @@ the Dockerfile's node stage.
 
 ## Tooling does the mechanical work — don't hand-fight it
 
-Style is enforced by **`eslint-config`** (a git dependency:
-`"eslint-config": "github:eetu/eslint-config#vX.Y.Z"`, imported as
-`eslint-config/react` or `eslint-config/node`). It composes:
+Style is enforced by **`@anarkisti/eslint-config`** — the published npm package
+(`"@anarkisti/eslint-config": "^X.Y.Z"`), **not** the legacy
+`github:eetu/eslint-config` git dep (those tags are gone, and consuming it as a
+git dep also trips a Node `require(esm)` assertion under yarn). Also add
+`typescript` + `typescript-eslint` as direct devDeps. Import the matching
+preset — `@anarkisti/eslint-config/react`, `/node`, `/svelte`, or `/web` (plain
+browser / vanilla-JS, no framework). It composes:
 
 - `@eslint/js` recommended + `typescript-eslint` recommended
 - **`simple-import-sort`** — imports/exports auto-sorted (error). Never reorder
@@ -56,7 +60,7 @@ Style is enforced by **`eslint-config`** (a git dependency:
   trailing commas, ~80 col. Run `yarn format` / `format:fix`; don't argue layout.
 
 `react` config adds `@eslint-react` recommended-typescript + `react-refresh`.
-Per-project `eslint.config.js` is tiny: spread `eslint-config/react` (and
+Per-project `eslint.config.js` is tiny: spread `@anarkisti/eslint-config/react` (and
 `@tanstack/eslint-plugin-router` flat/recommended first if the app uses the
 router). Scripts: `lint`, `lint:fix`, `format`, `format:fix`, `typecheck`
 (`tsc --noEmit`), `validate` (= typecheck + lint + format).

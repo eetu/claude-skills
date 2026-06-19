@@ -1,6 +1,6 @@
 ---
 name: svelte
-description: Svelte (runes) + SvelteKit house code style for eetu's projects — the .svelte conventions that layer on top of ts-style (which still governs all .ts). Covers runes (state/derived/props/effect), callback-prop events, snippets over slots, scoped styles consuming halo-design tokens, .svelte.ts modules for shared reactive state, keyed each, file-based routing with resolve()/page, and the eslint-config/svelte preset. Use when writing or reviewing any Svelte/SvelteKit code.
+description: Svelte (runes) + SvelteKit house code style for eetu's projects — the .svelte conventions that layer on top of ts-style (which still governs all .ts). Covers runes (state/derived/props/effect), callback-prop events, snippets over slots, scoped styles consuming halo-design tokens, .svelte.ts modules for shared reactive state, keyed each, file-based routing with resolve()/page, and the @anarkisti/eslint-config/svelte preset. Use when writing or reviewing any Svelte/SvelteKit code.
 user-invocable: true
 ---
 
@@ -22,14 +22,14 @@ No legacy reactivity — no `export let`, no `$:`, no `on:` directive, no
 
 ## Tooling does the mechanical work
 
-Lint/format come from **`eslint-config/svelte`** (a factory — pass your
-`svelte.config.js`, see that repo). It composes the node base
+Lint/format come from **`@anarkisti/eslint-config/svelte`** (the published npm
+package — a factory; pass your `svelte.config.js`, see that repo). It composes the node base
 (`typescript-eslint` + import-sort + unused-imports + prettier) with
 `eslint-plugin-svelte` recommended + prettier. Formatting is **prettier +
 `prettier-plugin-svelte`**. `eslint.config.js` is two lines:
 
 ```javascript
-import svelte from "eslint-config/svelte";
+import svelte from "@anarkisti/eslint-config/svelte";
 
 import svelteConfig from "./svelte.config.js";
 

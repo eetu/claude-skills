@@ -156,9 +156,10 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
   (poll/SWR-ish: reactive `data/error/loading`, started/stopped from an
   `$effect`). No `swr`.
 - **Routing:** SvelteKit file-based routes. Single-view apps just use `+page.svelte`.
-- **Lint/format:** use the shared **`eslint-config/svelte`** preset (a factory,
-  since it needs your `svelte.config.js`):
-  `import svelte from "eslint-config/svelte"; import svelteConfig from
+- **Lint/format:** use the shared **`@anarkisti/eslint-config/svelte`** preset
+  (the published npm package — a factory, since it needs your
+  `svelte.config.js`):
+  `import svelte from "@anarkisti/eslint-config/svelte"; import svelteConfig from
 "./svelte.config.js"; export default svelte(svelteConfig);`. It bundles
   `eslint-plugin-svelte` recommended + prettier + the TS parser wiring. Prettier
   needs `prettier-plugin-svelte`; `typecheck` = `svelte-check` (not `tsc`).
