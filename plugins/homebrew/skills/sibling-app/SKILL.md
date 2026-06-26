@@ -85,6 +85,27 @@ Root `CLAUDE.md` structure (see `chat/CLAUDE.md`, `scribe/CLAUDE.md`):
 Per-area `CLAUDE.md` is shorter — just that area's specifics (e.g. `frontend/`
 documents `yarn validate`; `backend/` notes the module map + loops/upstreams).
 
+## Local dev (task runner)
+
+A root **`justfile`** is the task runner. Support **two flows**:
+
+- **Whole service, one command:** `just dev <app>` starts _every_ component that
+  service needs together — backend + frontend + any sidecars — and one Ctrl-C
+  tears them all down (kill the children _and_ their grandchildren — the binary
+  under bacon, vite under yarn; never `kill 0`, which would also signal `just`).
+- **Per component, own terminal:** the Rust backend/worker via **bacon** (a
+  `bacon.toml` per crate: `default_job = "run"`, a `run` job that's
+  `background = true`, `on_change_strategy = "kill_then_restart"`,
+  `watch = [".env"]`), the SPA via `yarn dev`, a Python sidecar via `uv run`.
+
+The one-command flow runs the backend(s) **headless** so their logs compose into
+one stream: `bacon --headless -j run` (auto-reload, no TUI); run plain `bacon` in
+the crate when you want the interactive view. Backends load their own
+`backend/.env` (dotenvy) and bacon watches it, so config + code changes both
+hot-reload. Document the exact ports and `DEV_AUTH` / `*_OPEN` bypass switches in
+the app's root `CLAUDE.md` ("Working on this repo"). Avoid `cargo run` directly in
+`just dev` — it doesn't reload, so you debug a stale binary.
+
 ## Multi-service & polyglot (only when the domain demands it)
 
 Default to one binary. Split out a second service **only** when work is genuinely
