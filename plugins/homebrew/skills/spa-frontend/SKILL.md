@@ -69,23 +69,35 @@ Touch devices need a real PNG `apple-touch-icon` (iOS ignores SVG favicons for
 the home screen) plus a web manifest for Android/PWA install. The house setup
 (reference: a sibling app's `frontend`):
 
+- **Square, never pre-rounded (the #1 rule).** The icon frame is a _full-bleed
+  square_ on an opaque bg — **no rounded corners baked in** (no `rx` on the
+  background `rect`, no transparent corners). iOS and Android round home-screen /
+  PWA icons _themselves_; a pre-rounded source gets double-masked (a smaller
+  squircle with gaps / odd corners). Let the OS round. The browser-tab favicon is
+  square too — browsers don't round, and a square reads fine at tab size.
 - **Source SVGs** (committed, hand-edited — the per-app glyph from the design
-  skill, on an _opaque_ bg):
-  - `favicon.svg` — full-bleed glyph: the SVG favicon + raster source for the
-    any-purpose / apple-touch icons.
-  - `icon-maskable.svg` — same glyph shrunk to the maskable safe zone (~60%
-    centre) so Android's adaptive mask can't clip it.
+  skill, on an _opaque_ square bg, `rx` omitted):
+  - `favicon.svg` — full-bleed square glyph: the SVG favicon + raster source for
+    the any-purpose / apple-touch icons.
+  - `icon-maskable.svg` — same glyph shrunk to the maskable safe zone (~80%
+    centre) on the same full-bleed square bg so Android's adaptive mask can't clip
+    it. (Or derive it from `favicon.svg` by compositing the glyph at ~80% onto a
+    full-bleed bg — see the example `gen-icons.sh`.)
 - **Generated PNGs** (committed, so the build needs no rasterizer) via a
   `scripts/gen-icons.sh` using **librsvg** (`brew install librsvg`). Rerun it
   after editing a source SVG; copy the script forward verbatim:
 
 ```bash
-rsvg-convert -w 180 -h 180 favicon.svg       -o apple-touch-icon.png
-rsvg-convert -w 192 -h 192 favicon.svg       -o icon-192.png
-rsvg-convert -w 512 -h 512 favicon.svg       -o icon-512.png
-rsvg-convert -w 32  -h 32  favicon.svg       -o favicon-32.png
-rsvg-convert -w 192 -h 192 icon-maskable.svg -o icon-192-maskable.png
-rsvg-convert -w 512 -h 512 icon-maskable.svg -o icon-512-maskable.png
+set -euo pipefail
+BG="#0f0f0f"   # the icon bg; -b fills corners opaque so none ever round
+rsvg-convert -w 192 -h 192 -b "$BG" favicon.svg       -o icon-192.png
+rsvg-convert -w 512 -h 512 -b "$BG" favicon.svg       -o icon-512.png
+rsvg-convert -w 32  -h 32  -b "$BG" favicon.svg       -o favicon-32.png
+rsvg-convert -w 192 -h 192 -b "$BG" icon-maskable.svg -o icon-192-maskable.png
+rsvg-convert -w 512 -h 512 -b "$BG" icon-maskable.svg -o icon-512-maskable.png
+# apple-touch-icon: opaque, no alpha (Apple guidance), square
+rsvg-convert -w 180 -h 180 -b "$BG" favicon.svg -o /tmp/ati.png
+magick /tmp/ati.png -background "$BG" -flatten -alpha off -type TrueColor PNG24:apple-touch-icon.png
 ```
 
 - **`manifest.webmanifest`**: `name`, `short_name`, `description`,
