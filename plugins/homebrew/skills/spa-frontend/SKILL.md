@@ -1,16 +1,17 @@
 ---
 name: spa-frontend
-description: The frontend half of a homebrew web app — a Vite-built SPA that the Rust backend embeds and serves, talks to the backend over /api, styled with the halo-design tokens and written in ts-style. Use when building or working on the UI of a sibling app. Defines a framework-agnostic contract (build → embed → proxy → conventions) with React documented as the current default across the family, and Svelte as the shipped, recommended alternative. Pairs with rust-axum (backend) and sibling-app (assembly).
+description: The frontend half of a homebrew web app — a Vite-built SPA that the Rust backend embeds and serves, talks to the backend over /api, styled with the halo-design tokens and written in ts-style. Use when building or working on the UI of a sibling app. Defines a framework-agnostic contract (build → embed → proxy → conventions); SvelteKit (Svelte) is the default for new apps, with React documented as the legacy-by-inertia alternative for existing apps. Pairs with rust-axum (backend) and sibling-app (assembly).
 user-invocable: true
 ---
 
-> **Priors, not rails — and the framework is explicitly a slot.** React is the
-> current default by inertia: most apps in the family use it. That is _not_ a
-> mandate. The stable thing is the **contract** below; the framework that
-> fulfills it is swappable. **Svelte has now shipped** in the family (the
-> verified stack is specified below, on par with the React section) and is the
-> recommended choice for a new app. Keep the contract, swap the instantiation,
-> document it here.
+> **Priors, not rails — and the framework is explicitly a slot.** For a **new
+> app the default is SvelteKit (Svelte)** — unambiguously; scaffold it that way
+> unless the user says otherwise. React is legacy-by-inertia: older apps in the
+> family use it, but it is _not_ the choice for new work. The stable thing is
+> the **contract** below; the framework that fulfills it is swappable. Both
+> stacks are verified below — start from the Svelte section for new apps, the
+> React section only when extending an existing React app. Keep the contract,
+> swap the instantiation, document it here.
 
 # spa-frontend
 
@@ -18,17 +19,21 @@ user-invocable: true
 
 1. **Build with Vite → `dist/`.** The Rust backend embeds/serves `dist/` with an
    SPA fallback to `index.html` (see `rust-axum`). One origin in prod.
-2. **Dev = Vite dev server + proxy.** `vite.config.ts` `server.proxy` maps
-   `/api`, `/auth`, `/status` → the backend port (e.g. `http://localhost:3003`).
-   No CORS locally; same-origin in prod.
+2. **Dev = Vite dev server (`:5173`) + proxy.** `vite.config.ts` `server.proxy`
+   maps `/api` and `/status` → the backend bind (`http://localhost:3010`). No
+   CORS locally; same-origin in prod. **`/auth` is the oauth2-proxy EDGE route,
+   not a backend route** — don't proxy it and don't add a backend `/auth`
+   handler; locally `PARTY_OPEN=1` / `DEV_AUTH` bypass forward-auth. See
+   `vite.config.ts.example`.
 3. **Styling from `halo-design`.** Use the canonical `--halo-*` tokens. How
    they're sourced is framework-specific (and the app's `CLAUDE.md` is
    authoritative — follow it): **Svelte** imports `colors_and_type.css` verbatim
    and reads the vars in `<style>` blocks; **React/Emotion** mirrors the tokens
-   into a typed `themes.ts` (the `css` prop can't read CSS vars), seeded by
-   copying a sibling's `themes.ts` — that TS file is then the in-repo source of
-   truth, not drift. One warm accent, 6px soft cards, light/dark via
-   `prefers-color-scheme`.
+   into a typed `themes.ts` (the `css` prop can't read CSS vars), derived from the
+   shipped canonical `colors_and_type.css` (the source of truth) — or copied from
+   a cloned React sibling's `themes.ts` as a shortcut when one exists. That TS
+   file is then the in-repo source of truth, not drift. One warm accent, 6px soft
+   cards, light/dark via `prefers-color-scheme`.
 4. **Code from `ts-style`.** Same eslint-config, prettier, import sort, scripts
    (`dev/build/lint/format/typecheck/validate/preview`).
 5. **Data layer = a thin fetch wrapper + cache/revalidate** over the backend's
@@ -67,7 +72,8 @@ user-invocable: true
 
 Touch devices need a real PNG `apple-touch-icon` (iOS ignores SVG favicons for
 the home screen) plus a web manifest for Android/PWA install. The house setup
-(reference: a sibling app's `frontend`):
+(the shipped `gen-icons.sh` + manifest examples are the starting point; a cloned
+sibling app's `frontend` is an optional fuller example):
 
 - **Square, never pre-rounded (the #1 rule).** The icon frame is a _full-bleed
   square_ on an opaque bg — **no rounded corners baked in** (no `rx` on the
@@ -84,8 +90,9 @@ the home screen) plus a web manifest for Android/PWA install. The house setup
     it. (Or derive it from `favicon.svg` by compositing the glyph at ~80% onto a
     full-bleed bg — see the example `gen-icons.sh`.)
 - **Generated PNGs** (committed, so the build needs no rasterizer) via a
-  `scripts/gen-icons.sh` using **librsvg** (`brew install librsvg`). Rerun it
-  after editing a source SVG; copy the script forward verbatim:
+  `scripts/gen-icons.sh` using **librsvg + ImageMagick** (`brew install librsvg
+imagemagick` — the apple-touch / maskable steps pipe through `magick`). Rerun
+  it after editing a source SVG; copy the script forward verbatim:
 
 ```bash
 set -euo pipefail
@@ -131,23 +138,16 @@ Why chosen: lighter runtime and smaller compiled output (good on a small Pi);
 **scoped `<style>` blocks consuming `--halo-*` CSS vars are a more natural fit
 for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
 `themes.ts`/Emotion layer. ts-style and the whole contract above still apply
-(Svelte is TS-first). Reference: a sibling Svelte app's `frontend`.
+(Svelte is TS-first). Start from the shipped `*.example` files (below); a cloned
+sibling Svelte app's `frontend` is an optional fuller example.
 
 - **SvelteKit + Svelte (runes) + Vite** (latest), scaffolded with `npx sv create
   <dir> --template minimal --types ts --no-add-ons`. Runes mode is on by default
   in the generated `svelte.config.js`.
-- **Adapter = `@sveltejs/adapter-static` in pure-SPA mode.** No server logic (no
-  `+*.server.ts` / `+server.ts`). Config:
-
-  ```js
-  adapter: adapter({
-    pages: "dist",
-    assets: "dist",
-    fallback: "index.html",
-    strict: true,
-  });
-  ```
-
+- **Vite config** = `vite.config.ts.example` (the `:5173` server + `/api`,
+  `/status` → `:3010` proxy).
+- **Adapter = `@sveltejs/adapter-static` in pure-SPA mode** — full config in
+  `svelte.config.js.example`. No server logic (no `+*.server.ts` / `+server.ts`).
   Root `src/routes/+layout.ts`: `export const ssr = false; export const prerender = false;`
   - **`pages/assets: 'dist'`** matches the family convention (rust-axum's
     `STATIC_DIR` + the Dockerfile embed `dist/`; SvelteKit's default is `build/`).
@@ -159,25 +159,46 @@ for `halo-design` than a CSS-in-JS runtime** — the tokens drop straight in, no
     routes — the backend instead serves the SPA via a small fs handler
     (200 + content-type + path-traversal guard). See rust-axum.
 
-- **Styling:** import `colors_and_type.css` globally in `+layout.svelte`
-  (copied verbatim to `src/lib/styles/halo.css`); use `--halo-*` in component
-  `<style>` blocks. A shared `Panel.svelte` card + `Wordmark.svelte` are the
-  copy-forward brand/layout files (vs React's `themes.ts` + `Wordmark.tsx`).
+- **Styling:** import the `--halo-*` token CSS globally once in the root
+  `+layout.svelte` (copied verbatim from `colors_and_type.css` to
+  `src/lib/styles/halo.css`, or — in a monorepo — re-exported from a shared
+  design package, e.g. `import "@scene/design/halo.css"`); use `--halo-*` in
+  component `<style>` blocks. No `themes.ts`/Emotion layer (that's React-only).
 - **Data:** the same thin `api.ts` fetch wrapper (types hand-mirrored from the
-  Rust structs) + a `createResource()` rune helper in a `.svelte.ts` module
-  (poll/SWR-ish: reactive `data/error/loading`, started/stopped from an
-  `$effect`). No `swr`.
+  Rust structs — see `api.ts.example`) + a `createResource()` rune helper in a
+  `.svelte.ts` module (poll/SWR-ish: reactive `data/error/loading`,
+  started/stopped from an `$effect` — see `createResource.svelte.ts.example`).
+  No `swr`.
 - **Routing:** SvelteKit file-based routes. Single-view apps just use `+page.svelte`.
 - **Lint/format:** use the shared **`@anarkisti/eslint-config/svelte`** preset
   (the published npm package — a factory, since it needs your
   `svelte.config.js`):
   `import svelte from "@anarkisti/eslint-config/svelte"; import svelteConfig from
-"./svelte.config.js"; export default svelte(svelteConfig);`. It bundles
-  `eslint-plugin-svelte` recommended + prettier + the TS parser wiring. Prettier
-  needs `prettier-plugin-svelte`; `typecheck` = `svelte-check` (not `tsc`).
-  Scripts otherwise identical (`dev/build/lint/format/typecheck/validate`). See
-  `coding-style:svelte` for the `.svelte` conventions.
+"./svelte.config.js"; export default svelte(svelteConfig);` (see
+  `eslint.config.js.example`). It bundles `eslint-plugin-svelte` recommended +
+  prettier + the TS parser wiring. Prettier needs `prettier-plugin-svelte`,
+  which **requires a minimal `.prettierrc`** to load it (see
+  `coding-style:svelte`'s `prettierrc.example`); `typecheck` = `svelte-check`
+  (not `tsc`). Scripts otherwise identical
+  (`dev/build/lint/format/typecheck/validate`). See `coding-style:svelte` for
+  the `.svelte` conventions.
 
 Dockerfile/CI deltas vs React: **none of substance** — the `frontend-build`
 stage is still just `yarn build`, and CI's frontend job runs the same
 `lint/format/typecheck/build`. Only `typecheck` resolves to `svelte-check`.
+
+## Starter files
+
+Canonical SvelteKit templates ship beside this SKILL.md — copy each forward,
+rename off `.example`, and replace `<app>`/placeholder types with the real ones:
+
+- `vite.config.ts.example` — `:5173` dev server + `/api`,`/status` → `:3010` proxy.
+- `svelte.config.js.example` — adapter-static, `pages/assets: dist`,
+  `fallback: index.html`.
+- `eslint.config.js.example` — the `@anarkisti/eslint-config/svelte` factory spread.
+- `api.ts.example` — the thin fetch wrapper (`ApiError` + `request<T>` + `api` object).
+- `createResource.svelte.ts.example` — the rune resource helper (reactive
+  `data/error/loading`, `start()`/`stop()` driven from an `$effect`, optional poll).
+
+The `.prettierrc` (required to load `prettier-plugin-svelte`) and the `.svelte`
+code conventions live in `coding-style:svelte`. Icons: see the recipe above.

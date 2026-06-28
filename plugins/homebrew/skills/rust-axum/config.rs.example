@@ -1,0 +1,55 @@
+//! Plain `env::var()` → `Config` struct. No figment/clap/envy. Replace every
+//! `<APP>` with the uppercase env prefix (e.g. TRACKER) and `<app>` with the
+//! lowercase name. Add app-specific fields (upstream bases, collection roots)
+//! here; keep the four contract fields below as-is so the frontend + deploy
+//! halves line up.
+
+use std::env;
+use std::path::PathBuf;
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    /// Listen address. `<APP>_BIND`, default `0.0.0.0:3010`.
+    pub bind: String,
+    /// When set, `/api/*` is reachable without forward-auth headers. Enabled by
+    /// `DEV_AUTH=1` (local dev) or `<APP>_OPEN=1` (a LAN-only deploy with no
+    /// oauth2-proxy in front). The linchpin of dev + e2e; see [`crate::auth`].
+    pub dev_auth: bool,
+    /// SQLite cache/state file. `<APP>_DB_PATH`. (Drop this field + db.rs if the
+    /// app is stateless.)
+    pub db_path: PathBuf,
+    /// Directory of the built SPA to serve (Vite `dist/`). `STATIC_DIR`,
+    /// default `./dist`.
+    pub static_dir: PathBuf,
+}
+
+impl Config {
+    pub fn from_env() -> anyhow::Result<Self> {
+        let dev_auth = env::var("DEV_AUTH").as_deref() == Ok("1")
+            || env::var("<APP>_OPEN").as_deref() == Ok("1");
+        Ok(Self {
+            bind: env::var("<APP>_BIND").unwrap_or_else(|_| "0.0.0.0:3010".into()),
+            dev_auth,
+            db_path: PathBuf::from(env::var("<APP>_DB_PATH").unwrap_or_else(|_| "<app>.db".into())),
+            static_dir: PathBuf::from(env::var("STATIC_DIR").unwrap_or_else(|_| "./dist".into())),
+        })
+        // Fail closed: if the app has its own secrets (SESSION_KEY, an upstream
+        // token), require them here and `anyhow::bail!` when absent unless
+        // dev_auth — refuse to boot in prod without them.
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_and_dev_auth_bypass() {
+        // Test pure env→Config logic; the contract defaults are part of the seam.
+        std::env::set_var("<APP>_OPEN", "1");
+        let cfg = Config::from_env().unwrap();
+        assert!(cfg.dev_auth);
+        assert_eq!(cfg.static_dir, PathBuf::from("./dist"));
+        std::env::remove_var("<APP>_OPEN");
+    }
+}

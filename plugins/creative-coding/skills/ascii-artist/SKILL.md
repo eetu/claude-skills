@@ -95,6 +95,43 @@ const glyph = GLYPHS[(h >>> 3) % GLYPHS.length]; // use >>> for array indices
   toward a second palette (e.g. a melt front blending ice→magma) keyed off a
   per-cell phase so it sweeps across the mark.
 
+## Starter skeleton
+
+The HiDPI canvas + capped loop the rules below tune. Size the backing store by
+DPR, scale the context once so you draw in CSS pixels, and gate the loop on a
+time accumulator:
+
+```js
+const dpr = Math.min(window.devicePixelRatio || 1, 1.5); // see DPR cap below
+function resize() {
+  const cssW = canvas.clientWidth,
+    cssH = canvas.clientHeight;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr; // backing store
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS px; rebuild gradients here
+}
+addEventListener("resize", resize);
+resize();
+
+const FRAME = 1000 / 30; // ~30 fps cap
+let last = 0,
+  acc = 0;
+function loop(now) {
+  acc += now - last;
+  last = now;
+  if (acc >= FRAME) {
+    acc = Math.min(acc - FRAME, FRAME); // spend one frame, don't spiral
+    ctx.font = `${fontSize}px monospace`; // set once per frame, not per glyph
+    render(now);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame((now) => {
+  last = now;
+  loop(now);
+});
+```
+
 ## Performance — the rules that matter (the why)
 
 These are where canvas ASCII goes wrong. In rough order of impact:

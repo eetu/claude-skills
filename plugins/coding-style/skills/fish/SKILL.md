@@ -92,6 +92,16 @@ bash/POSIX script → `bash -c` it** instead of translating. For setup docs aime
 at Eetu, prefer fish syntax (`set -gx` not `export`) or explicitly say "run under
 bash".
 
+## Committed scripts are POSIX, not fish
+
+The above is about the **interactive shell + the Claude Code Bash-tool session** —
+that's where fish runs. A script **file committed to a repo** (`install-hooks.sh`,
+a `pre-commit` hook, CI helpers) is a different thing: write it POSIX with
+`#!/usr/bin/env bash` (or `#!/bin/sh`), **never fish**. It has to run on machines
+and CI that don't have fish, and the rest of the family's scripts (ts-style,
+sibling-app) are POSIX. So: fish for what you type, bash/sh for what you check in —
+don't emit fish-syntax `.sh` files.
+
 ## Note for setup/installer instructions
 
 Upstream "run this" snippets (`export X=…`, `curl … | bash`, `VAR=… ./script`)

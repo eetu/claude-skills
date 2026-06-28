@@ -12,8 +12,11 @@ user-invocable: true
 > single-binary, all-Rust shape is the common case, not a rule** — a domain that
 > needs extra service binaries or a non-Rust sidecar (see "Multi-service &
 > polyglot" below) is still a sibling app, as long as it keeps the seams, the
-> security model, and the deploy contract. Read an existing sibling app live for
-> the worked multi-service example; versions drift — prefer the latest.
+> security model, and the deploy contract. **Standalone by default:** the shipped
+> `*.example` templates are the canonical starting point and produce a working
+> result with no sibling cloned; a cloned sibling is an optional fuller reference,
+> not a prerequisite. Read one live for the worked multi-service example if it's
+> checked out; versions drift — prefer the latest.
 
 # sibling-app
 
@@ -133,16 +136,45 @@ compat-API service, and a Python `shim` wrapping a vendor SDK.
 
 ## Scaffold order
 
-1. Workspace `Cargo.toml` (from a sibling app; keep `[workspace.dependencies]`,
-   trim `members`; prefer the latest crate versions). → `rust-axum`.
+1. Workspace `Cargo.toml` (from the canonical `Cargo.toml.example` shipped in the
+   **rust-axum** skill dir — or a sibling's, if cloned; keep
+   `[workspace.dependencies]`, trim `members`; prefer the latest crate versions).
+   → `rust-axum`.
 2. Backend skeleton → `rust-axum`.
-3. Frontend skeleton → `spa-frontend` (pick framework consciously).
+3. Frontend skeleton → `spa-frontend`. **New-app default = SvelteKit (Svelte);**
+   pick another framework only with a reason. → `spa-frontend`.
 4. Per-app design skill → `halo-design` (copy `colors_and_type.css`, swap the
    four deltas: glyph, wordmark text, layout, voice).
-5. Tooling (this skill): hooks, workflows, dependabot, Dockerfile, ignores.
-   Run `./install-hooks.sh`.
-6. `SECURITY.md`: copy a sibling app's, rewrite threat-model/trust-boundaries.
-7. Deploy wiring in `../raspi` (below).
+5. Tooling (this skill): copy the starter files (below), substitute `<name>`,
+   then run `./install-hooks.sh`.
+6. `SECURITY.md`: from `SECURITY.md.example` (below), fill threat-model/
+   trust-boundaries for this app.
+7. Deploy wiring in `../raspi` (below) — **only if `../raspi` is checked out
+   beside this repo** (see the HARD PREREQUISITE note on that section).
+
+## Starter files
+
+Canonical, generalized-from-a-working-sibling templates ship beside this skill
+(and the leaf skills). **They are self-sufficient: copying them produces a working
+result with NO sibling app cloned.** A checked-out sibling is an optional fuller
+example — a complete live instance — never a prerequisite; these skills are
+written to yield equivalent results whether or not siblings are present. Copy the
+templates in, substitute `<name>`/`<NAME>` (see "Per-app substitutions"), and
+re-resolve action SHAs. They're single-service shapes; each carries inline notes
+for the multi-service / polyglot fan-out.
+
+| File                                 | Lands at                             | Notes                                                 |
+| ------------------------------------ | ------------------------------------ | ----------------------------------------------------- |
+| `justfile.example`                   | `justfile`                           | task runner; `dev` recipe has the child-tree teardown |
+| `install-hooks.sh.example`           | `install-hooks.sh`                   | **mode 755**                                          |
+| `pre-commit.example`                 | `.githooks/pre-commit`               | **mode 755**; staged-path branching                   |
+| `Dockerfile.example`                 | `Dockerfile`                         | vendored-yarn → xx cross-compile → scratch            |
+| `dependabot.yaml.example`            | `.github/dependabot.yml`             | npm `/frontend` + cargo `/` + docker + actions        |
+| `SECURITY.md.example`                | `SECURITY.md`                        | threat-model skeleton                                 |
+| `workflows/ci.yaml.example`          | `.github/workflows/ci.yaml`          | resolve SHAs first                                    |
+| `workflows/automerge.yaml.example`   | `.github/workflows/automerge.yaml`   | uses `eetu/action-automerge`                          |
+| `workflows/dockerimage.yaml.example` | `.github/workflows/dockerimage.yaml` | build+push linux/arm64 to GHCR                        |
+| `workflows/cve-scan.yaml.example`    | `.github/workflows/cve-scan.yaml`    | weekly trivy → Security tab                           |
 
 ## App-level tooling (owned here)
 
@@ -164,6 +196,11 @@ compat-API service, and a Python `shim` wrapping a vendor SDK.
   (`uses: actions/checkout@<sha> # v6`) — tamper-evident, and dependabot still
   bumps the SHA + rewrites the comment. Exception: rolling selectors like
   `dtolnay/rust-toolchain@stable` stay on the tag (pinning would freeze them).
+  **You cannot know SHAs offline** — the ones in the starter workflows are
+  illustrative and go stale. Before committing, resolve each action's current
+  release commit and rewrite the SHA + `# vN`:
+  `gh api repos/<owner>/<action>/git/ref/tags/<tag> --jq .object.sha` (or the
+  action's Releases page).
 - **CI (`ci.yaml`):** `frontend` job (`setup-node` with `node-version-file:
 frontend/.node-version` → yarn install --immutable → lint, format,
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
@@ -179,7 +216,8 @@ frontend/.node-version` → yarn install --immutable → lint, format,
   service** — repeat the build-push per service (build each service's image),
   each its own target stage + ghcr repo + paths-filter gate.
 - **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'`, uses the house
-  automerge action on the plain `GITHUB_TOKEN` (`contents: write` +
+  automerge action `eetu/action-automerge` on the plain `GITHUB_TOKEN`
+  (`contents: write` +
   `pull-requests: write` — no extra read scopes needed). **Skip github-actions
   bumps:** add `&& !startsWith(github.head_ref, 'dependabot/github_actions')` to
   the job `if`. Those PRs edit `.github/workflows/*`, which `GITHUB_TOKEN` cannot
@@ -228,6 +266,13 @@ branch (`main`; some apps use `develop`); env prefixes (`<NAME>_DB_PATH`, `BIND`
   privilege. Container name must equal the systemd unit name (cgroup match).
 
 ## raspi deploy wiring (in `../raspi`, per its CLAUDE.md "Adding a new service")
+
+> **HARD PREREQUISITE: this phase requires the existing `../raspi` pyinfra repo
+> checked out beside this one.** It edits files _in that repo_ (`all.py`,
+> `tasks/*.py`). If `../raspi` is absent, deploy is **out of scope** for a
+> standalone app — stop here, ship the image to GHCR, and do NOT invent raspi
+> files (`tasks/<name>.py`, `all.py` entries) from scratch; they only make sense
+> as edits to the real repo.
 
 - `all.py` + `all.example.py`: service dict (host `127.0.0.1`, port, `url_prefix`,
   image, `public:` flag, `MemoryMax`, `MALLOC_ARENA_MAX=2`).

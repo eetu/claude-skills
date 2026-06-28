@@ -1,6 +1,6 @@
 ---
 name: lint-format
-description: Language-agnostic rule for tooling on every project — always wire up the standard formatter and linter for the language, run with defaults unless a project rule overrides, and keep the build at zero warnings (fix the code, or disable narrowly with a stated reason). Use when starting a project, adding files in a new language, or reviewing any code in any language (TS, Python, Rust, Go, shell, etc.). Language-specific configs layer on top — e.g. ts-style pins eslint+prettier via eslint-config.
+description: Language-agnostic rule for tooling on every project — always wire up the standard formatter and linter for the language, run with defaults unless a project rule overrides, and keep the build at zero warnings (fix the code, or disable narrowly with a stated reason). Use when starting a project, adding files in a new language, or reviewing any code in any language (TS, Python, Rust, Go, shell, etc.). Language-specific configs layer on top — e.g. ts-style pins eslint+prettier via eslint-config. Ships an example .editorconfig (spaces, cross-language indentation/line-width) to copy into new repos.
 user-invocable: true
 ---
 
@@ -45,6 +45,27 @@ real project requirement forces it (a pinned shared config, a framework plugin,
 a genuine incompatibility) — and prefer a shared/inherited config over a
 per-project one so the whole fleet moves together. Less local config = more
 boring, more uniform diffs.
+
+## One `.editorconfig` for cross-tool basics
+
+Indentation, line width, and newline/charset hygiene aren't per-tool taste —
+they're shared facts every editor and formatter should agree on. Declare them
+once in a root **`.editorconfig`** instead of scattering `useTabs`/`printWidth`
+across each tool's rc. Prettier reads `.editorconfig` for `indent_style`,
+`indent_size`/`tab_width`, `max_line_length`, and `end_of_line`; editors read it
+natively; rustfmt/gofmt ignore it but already match it.
+
+- **Spaces, not tabs** — except where a tool _requires_ tabs (Go/gofmt, Makefile
+  recipes). YAML forbids tabs outright; never override it to tabs.
+- It's the **single sanctioned place** for the rare width override the section
+  above allows — change it here once and fleet-wide tools follow.
+- A per-tool rc then carries **only what `.editorconfig` can't express** — e.g.
+  `.prettierrc` holds just plugins (`prettier-plugin-svelte`) + parser overrides,
+  not indent/width/quote style (formatting stays delegated to tooling, see
+  [[ts-style]]).
+
+Copy `editorconfig.example` to the repo root as `.editorconfig` and trim the
+language blocks you don't need.
 
 ## Zero warnings — fix or justify, never leave dangling
 

@@ -1,0 +1,63 @@
+// Thin fetch layer over the backend's JSON API. Types are hand-written to match
+// the Rust structs (no codegen — see sibling-app). Keep in sync with
+// backend/src/routes.rs.
+
+/** One library row. Mirror the backend's `Serialize` struct field-for-field;
+ *  `T | null` for Rust `Option<T>`. Replace with your app's real types. */
+export type Item = {
+  id: string;
+  name: string;
+  count: number;
+  note: string | null;
+};
+
+/** The unauth liveness payload from `/status`. */
+export type StatusResponse = {
+  service: string;
+  version: string;
+  db_healthy: boolean;
+};
+
+/** Thrown for any non-2xx response; carries the HTTP status. */
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    headers: {
+      accept: "application/json",
+      ...(init?.body ? { "content-type": "application/json" } : {}),
+    },
+    ...init,
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, `${init?.method ?? "GET"} ${path} → ${res.status}`);
+  }
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  return res.json() as Promise<T>;
+}
+
+// One object, one method per endpoint. Unwrap envelope responses (`{ items }`)
+// here so callers get the bare value. `/status` is unauth; everything else is
+// under `/api`.
+export const api = {
+  status: () => request<StatusResponse>("/status"),
+  items: () => request<{ items: Item[] }>("/api/items").then((r) => r.items),
+  getItem: (id: string) => request<Item>(`/api/items/${id}`),
+  createItem: (name: string) =>
+    request<Item>("/api/items", { method: "POST", body: JSON.stringify({ name }) }),
+  deleteItem: (id: string) => request<void>(`/api/items/${id}`, { method: "DELETE" }),
+};
+
+/** URL for raw bytes served by the backend (e.g. media, downloads). */
+export function fileUrl(id: string): string {
+  return `/api/file/${id}`;
+}

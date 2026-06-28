@@ -26,7 +26,10 @@ Lint/format come from **`@anarkisti/eslint-config/svelte`** (the published npm
 package — a factory; pass your `svelte.config.js`, see that repo). It composes the node base
 (`typescript-eslint` + import-sort + unused-imports + prettier) with
 `eslint-plugin-svelte` recommended + prettier. Formatting is **prettier +
-`prettier-plugin-svelte`**. `eslint.config.js` is two lines:
+`prettier-plugin-svelte`**, which **requires a `.prettierrc`** to load the
+plugin — copy the shipped `prettierrc.example` to `.prettierrc`. It holds ONLY
+the plugin + the `*.svelte` parser override; formatting/width still come from
+the repo `.editorconfig` (100 col). `eslint.config.js` is two lines:
 
 ```javascript
 import svelte from "@anarkisti/eslint-config/svelte";
@@ -87,7 +90,7 @@ hand-sort imports or argue layout — run `yarn lint:fix` / `yarn format:fix`.
 
 ## Reference
 
-Live examples: a sibling Svelte app's `frontend/src` — `routes/+layout.svelte`
+Live examples (if cloned): a sibling Svelte app's `frontend/src` — `routes/+layout.svelte`
 (tabs/resolve/page), `lib/components/*.svelte` (props/snippets/scoped styles), a
 `*.svelte.ts` runes module, `lib/api.ts`. Preset source: the `eslint-config`
 repo's `svelte.js`.

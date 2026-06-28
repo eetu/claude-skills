@@ -1,0 +1,55 @@
+# Single-service CI. frontend job (vendored yarn) + backend job (whole rust
+# workspace). Add an `e2e` job if there's an e2e crate; add a job per non-Rust
+# sidecar in its own toolchain (e.g. astral-sh/setup-uv → uv sync --frozen →
+# ruff check src).
+#
+# SHA PINS: every `uses:` below pins a full commit SHA with a `# vN` comment.
+# The SHAs here are illustrative and WILL be stale — before committing, resolve
+# each action's CURRENT release commit:
+#   gh api repos/<owner>/<action>/git/ref/tags/<tag> --jq .object.sha
+# (or the action's Releases page), then update the SHA + the `# vN` comment.
+# Exception: rolling selectors like dtolnay/rust-toolchain@stable stay on the tag.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    name: "Frontend"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: frontend/.node-version
+      # Yarn is vendored (.yarn/releases/*.cjs) and invoked via node — no
+      # corepack (node 25+ dropped the bundle), so this stays node-version
+      # agnostic and in step with the Dockerfile's node stage.
+      - name: Frontend checks
+        working-directory: frontend
+        run: |
+          yarn() { node .yarn/releases/yarn-*.cjs "$@"; }
+          yarn install --immutable
+          yarn lint
+          yarn format
+          yarn typecheck
+          yarn build
+
+  backend:
+    name: "Backend (Rust workspace)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: "."
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+      - run: cargo build --workspace --release
