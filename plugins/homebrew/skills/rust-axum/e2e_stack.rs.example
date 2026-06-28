@@ -1,0 +1,132 @@
+//! Integration harness: spawns the real `<app>-backend` binary with `DEV_AUTH=1`
+//! against a temp SQLite + stub dist/, polls `/status` until up, exposes a
+//! `reqwest` client, and kills the child on `Drop`. Lives in the `e2e` crate's
+//! `src/lib.rs`; tests under `e2e/tests/*.rs` are `#[ignore]` (they spawn a
+//! process + bind a port) — run with `cargo test -p <app>-e2e -- --ignored`.
+//! Replace every `<app>` / `<APP>` placeholder.
+
+use std::net::TcpListener;
+use std::path::PathBuf;
+use std::process::{Child, Command};
+use std::time::Duration;
+
+use tempfile::TempDir;
+
+pub struct Stack {
+    child: Child,
+    pub base: String,
+    pub client: reqwest::Client,
+    _data_tmp: TempDir,
+    _static_tmp: TempDir,
+}
+
+impl Stack {
+    pub async fn start() -> anyhow::Result<Self> {
+        Self::start_with_env(&[]).await
+    }
+
+    /// Like [`Stack::start`] but with extra env vars (e.g. pointing an upstream
+    /// client at a wiremock stub via its `*_BASE` override).
+    pub async fn start_with_env(extra: &[(&str, &str)]) -> anyhow::Result<Self> {
+        let data_tmp = tempfile::tempdir()?;
+        let db_path = data_tmp.path().join("<app>.db");
+
+        // A stub dist/ so serve_spa's index.html fallback resolves.
+        let static_tmp = tempfile::tempdir()?;
+        std::fs::write(
+            static_tmp.path().join("index.html"),
+            "<html><body><app></body></html>",
+        )?;
+
+        let port = free_port()?;
+        let base = format!("http://127.0.0.1:{port}");
+
+        let mut cmd = Command::new(bin_path());
+        cmd.env("DEV_AUTH", "1") // bypass forward-auth so /api/* is reachable
+            .env("<APP>_BIND", format!("127.0.0.1:{port}"))
+            .env("<APP>_DB_PATH", &db_path)
+            .env("STATIC_DIR", static_tmp.path())
+            .env("RUST_LOG", "warn");
+        for (k, v) in extra {
+            cmd.env(k, v);
+        }
+        let child = cmd.spawn()?;
+
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .cookie_store(true)
+            .build()?;
+
+        // Generous: the suite spawns several backends in parallel, so startup
+        // can lag. /status never touches the DB, so a slow response means the
+        // process isn't up yet.
+        let mut up = false;
+        for _ in 0..200 {
+            if let Ok(r) = client.get(format!("{base}/status")).send().await {
+                if r.status().is_success() {
+                    up = true;
+                    break;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        let stack = Stack {
+            child,
+            base,
+            client,
+            _data_tmp: data_tmp,
+            _static_tmp: static_tmp,
+        };
+        if !up {
+            anyhow::bail!("backend did not come up within 20s");
+        }
+        Ok(stack)
+    }
+
+    pub async fn get(&self, route: &str) -> reqwest::Response {
+        self.client
+            .get(format!("{}{route}", self.base))
+            .send()
+            .await
+            .expect("request failed")
+    }
+
+    pub async fn get_json(&self, route: &str) -> serde_json::Value {
+        let r = self.get(route).await;
+        assert!(r.status().is_success(), "GET {route} → {}", r.status());
+        r.json().await.expect("json")
+    }
+}
+
+impl Drop for Stack {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+fn free_port() -> anyhow::Result<u16> {
+    let l = TcpListener::bind("127.0.0.1:0")?;
+    Ok(l.local_addr()?.port())
+}
+
+/// Resolve the sibling backend binary next to the test runner (works under
+/// `cargo test`, which builds into `target/<profile>/deps/`).
+fn bin_path() -> PathBuf {
+    let mut p = std::env::current_exe().expect("current_exe");
+    p.pop();
+    if p.ends_with("deps") {
+        p.pop();
+    }
+    p.join("<app>-backend")
+}
+
+// A test lives in e2e/tests/api.rs:
+//
+//   #[tokio::test]
+//   #[ignore = "spawns the backend binary"]
+//   async fn status_is_up() {
+//       let stack = <app>_e2e::Stack::start().await.unwrap();
+//       let body = stack.get_json("/status").await;
+//       assert_eq!(body["service"], "<app>");
+//   }

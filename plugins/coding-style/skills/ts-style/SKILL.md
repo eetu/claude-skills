@@ -56,8 +56,11 @@ browser / vanilla-JS, no framework). It composes:
   imports by hand; run `yarn lint:fix`.
 - **`unused-imports`** — unused _imports_ error; unused _vars_ warn, ignored when
   prefixed `_` (`argsIgnorePattern`/`varsIgnorePattern` = `^_`).
-- **prettier** (defaults, no rc file) — 2-space, double quotes, semicolons,
-  trailing commas, ~80 col. Run `yarn format` / `format:fix`; don't argue layout.
+- **prettier** — 2-space, double quotes, semicolons, trailing commas. Line
+  width per the repo `.editorconfig` (100; Prettier's bare default is 80 absent
+  the file). No rc for plain TS; plugins (e.g. `prettier-plugin-svelte`) need a
+  minimal `.prettierrc` — see `lint-format` / `coding-style:svelte`. Run
+  `yarn format` / `format:fix`; don't argue layout.
 
 `react` config adds `@eslint-react` recommended-typescript + `react-refresh`.
 Per-project `eslint.config.js` is tiny: spread `@anarkisti/eslint-config/react` (and
@@ -100,6 +103,6 @@ not per-project.
 
 ## Reference
 
-Live examples: a sibling app's `frontend/src/components/*.tsx` and
+Live examples (if cloned): a sibling app's `frontend/src/components/*.tsx` and
 `frontend/src/api.ts`. The eslint-config source: the `eslint-config` repo's
 `{node,react}.js`.

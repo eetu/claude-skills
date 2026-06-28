@@ -1,0 +1,161 @@
+//! Backend boot flow + the three house seams: SPA serving, CSP, forward-auth.
+//! `main.rs` is one line: `<app>_backend::run_server().await`. Replace every
+//! `<app>` / `<APP>` placeholder. Split into config.rs / routes.rs / auth.rs /
+//! error.rs / db.rs as the app grows — this single file is the starting shape.
+//!
+//! Real siblings split CSP across files and add per-app sources (e.g. a WASM
+//! player needs `'wasm-unsafe-eval'` + `worker-src blob:`); the CSP here is the
+//! canonical baseline — extend `img-src`/`media-src`/`connect-src` per app.
+
+use std::sync::Arc;
+
+use axum::extract::{FromRequestParts, State};
+use axum::http::request::Parts;
+use axum::http::{header, HeaderValue, StatusCode, Uri};
+use axum::response::{Html, IntoResponse, Response};
+use axum::routing::get;
+use axum::{Json, Router};
+use serde_json::json;
+use tower_http::set_header::SetResponseHeaderLayer;
+use tracing_subscriber::EnvFilter;
+
+// In the real layout these are sibling files: `mod config; mod routes; mod
+// auth; mod error; mod db;`. `config.rs.example` ships the Config below.
+mod config;
+use config::Config;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub cfg: Arc<Config>,
+    // pub db: Db,                 // omit if stateless
+    pub http: reqwest::Client, // shared client for fan-in upstreams
+}
+
+pub async fn run_server() -> anyhow::Result<()> {
+    let _ = dotenvy::dotenv();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info,<app>_backend=debug")),
+        )
+        .init();
+
+    let cfg = Config::from_env()?;
+    if cfg.dev_auth {
+        tracing::warn!("DEV_AUTH/<APP>_OPEN set — forward-auth gate bypassed; not for prod");
+    }
+
+    // let db = Db::open(&cfg.db_path)?;   // omit if stateless
+    let state = AppState {
+        cfg: Arc::new(cfg),
+        // db,
+        http: reqwest::Client::new(),
+    };
+    let bind = state.cfg.bind.clone();
+
+    let app = router(state);
+    let listener = tokio::net::TcpListener::bind(&bind).await?;
+    tracing::info!(%bind, "<app> listening");
+    axum::serve(listener, app).await?;
+    Ok(())
+}
+
+fn router(state: AppState) -> Router {
+    Router::new()
+        // Unauthenticated liveness — gatus probes this; keep it auth-free.
+        .route("/status", get(status))
+        // .route("/api/things", get(api_things))   // gated; takes `_: Auth`
+        .layer(csp_layer())
+        .fallback(get(serve_spa)) // NOT fallback_service(ServeDir…) — see below
+        .with_state(state)
+}
+
+// ---------- liveness probe (no auth, no secrets) ----------
+
+async fn status(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let _ = &state; // probe an upstream / DB here and report a bool
+    Json(json!({
+        "service": "<app>",
+        "version": env!("CARGO_PKG_VERSION"),
+    }))
+}
+
+// ---------- SPA serving (frontend-agnostic) ----------
+
+/// Serve a real built asset under `static_dir`, else `index.html` with **200**
+/// so the client router owns the route. Do NOT use `ServeDir.not_found_service`
+/// — it leaks a 404 onto every client route (hard refresh on a sub-route 404s
+/// with the shell body). canonicalize + starts_with rejects `..` traversal.
+async fn serve_spa(State(state): State<AppState>, uri: Uri) -> Response {
+    let base = &state.cfg.static_dir;
+    let rel = uri.path().trim_start_matches('/');
+    if !rel.is_empty() {
+        let cand = base.join(rel);
+        if let (Ok(c), Ok(b)) = (cand.canonicalize(), base.canonicalize()) {
+            if c.starts_with(&b) && c.is_file() {
+                if let Ok(bytes) = tokio::fs::read(&c).await {
+                    let mime = mime_guess::from_path(&c).first_or_octet_stream();
+                    return ([(header::CONTENT_TYPE, mime.as_ref())], bytes).into_response();
+                }
+            }
+        }
+    }
+    match tokio::fs::read_to_string(base.join("index.html")).await {
+        Ok(html) => Html(html).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "not found").into_response(),
+    }
+}
+
+// ---------- CSP (in-code, on every response) ----------
+
+/// Same-origin baseline + the Google Fonts hosts halo-design uses + a
+/// `manifest-src` for the SPA's webmanifest. Extend `img-src`/`media-src`/
+/// `connect-src` per app. HSTS / X-Frame-Options / X-Content-Type-Options are
+/// Traefik's job, not the binary's.
+fn csp_layer() -> SetResponseHeaderLayer<HeaderValue> {
+    const CSP: &str = "default-src 'self'; \
+         script-src 'self'; \
+         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
+         font-src 'self' data: https://fonts.gstatic.com; \
+         img-src 'self' data: blob:; \
+         connect-src 'self'; \
+         manifest-src 'self'; \
+         frame-ancestors 'none'; \
+         base-uri 'self'; \
+         object-src 'none'; \
+         form-action 'self'";
+    SetResponseHeaderLayer::if_not_present(
+        header::CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static(CSP),
+    )
+}
+
+// ---------- forward-auth extractor ----------
+
+/// Zero-sized proof a request is authenticated. Add `_: Auth` to every `/api/*`
+/// handler. The app sits behind oauth2-proxy forward-auth on the Pi; the binary
+/// only asserts the edge vouched via `X-Auth-Request-User` (401 if absent —
+/// defence in depth). Bypassed by `cfg.dev_auth` (`DEV_AUTH=1` / `<APP>_OPEN=1`),
+/// which is how dev + the e2e harness reach `/api/*`. `/status` stays unauth.
+const HDR_USER: &str = "x-auth-request-user";
+
+pub struct Auth;
+
+impl FromRequestParts<AppState> for Auth {
+    type Rejection = (StatusCode, &'static str);
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        if state.cfg.dev_auth {
+            return Ok(Auth);
+        }
+        let user = parts
+            .headers
+            .get(HDR_USER)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        if user.is_empty() {
+            return Err((StatusCode::UNAUTHORIZED, "unauthorized"));
+        }
+        Ok(Auth)
+    }
+}

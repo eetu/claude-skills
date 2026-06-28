@@ -1,13 +1,17 @@
 #!/bin/sh
-# Repo pre-commit gate. Wired via `core.hooksPath` (npm `prepare` script).
+# Repo pre-commit gate. Wired via `core.hooksPath` (run ./install-hooks.sh once).
 # Mirrors CI: formatting, markdown lint, structural checks. Fail = no commit.
+#
+# Uses the repo-vendored yarn (`yarnPath` in .yarnrc.yml) via node, so the hook
+# works without a global yarn / corepack on PATH — same as the justfile.
 set -e
+yarn="node $(awk '/^yarnPath:/{print $2}' .yarnrc.yml)"
 
 echo "pre-commit: prettier --check"
-yarn format
+$yarn format
 
 echo "pre-commit: markdownlint"
-yarn lint
+$yarn lint
 
 echo "pre-commit: validate-skills"
-yarn validate:skills
+$yarn validate:skills

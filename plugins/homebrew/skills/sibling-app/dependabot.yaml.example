@@ -1,0 +1,76 @@
+# Lands at .github/dependabot.yml (GitHub accepts .yml or .yaml).
+# Add one ecosystem per non-Rust sidecar (e.g. pip/uv at /<shim>).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 5
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group the framework family (svelte/@sveltejs/* here; react/tanstack on a
+      # React app) + vite, plus a catch-all minor/patch group.
+      svelte:
+        patterns:
+          - "svelte"
+          - "@sveltejs/*"
+          - "svelte-*"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 5
+    groups:
+      axum:
+        patterns:
+          - "axum"
+          - "axum-*"
+          - "tower"
+          - "tower-*"
+          - "hyper"
+          - "hyper-*"
+      tokio:
+        patterns:
+          - "tokio"
+          - "tokio-*"
+          - "futures*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # docker + github-actions only honour `default-days` — the semver-* keys
+  # silently break parsing for these ecosystems, so they're omitted.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

@@ -1,0 +1,65 @@
+# <name> task runner. `just` with no args lists recipes.
+# Frontend: yarn (vendored). Backend: cargo. (Sidecars: uv — uncomment below.)
+
+# Yarn = the repo-vendored release pinned by `yarnPath` in .yarnrc.yml, run via
+# node. No global yarn / corepack needed (recipes run under sh, which can't see a
+# shell yarn function), and it auto-tracks `yarn set version` bumps.
+yarn := "node " + (justfile_directory() / `awk '/^yarnPath:/{print $2}' .yarnrc.yml`)
+
+default:
+    @just --list
+
+# Install all JS workspace deps.
+install:
+    {{yarn}} install
+
+# Per-component alternative (own terminals): `cd backend && bacon` (TUI),
+# `cd frontend && yarn dev`, `uv run …` for a Python sidecar. In `just dev` the
+# backend runs headless (`bacon --headless -j run`) so all the logs compose into
+# one stream; backends hot-reload on src + .env changes.
+#
+# Dev the whole service together: backend (bacon) + frontend (vite) + sidecars.
+dev app="<name>":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Tear down every child (and its grandchildren — the backend binary under
+    # bacon, vite under yarn) on Ctrl-C / exit, so nothing orphans and holds its
+    # port. Killing only the children — NOT `kill 0` — leaves `just` and the
+    # shell unsignalled, so no stray SIGTERM noise on exit.
+    pids=""
+    cleanup() {
+        trap - INT TERM EXIT
+        for p in $pids; do
+            pkill -P "$p" 2>/dev/null || true
+            kill "$p" 2>/dev/null || true
+        done
+    }
+    trap cleanup INT TERM EXIT
+    ( cd backend && exec bacon --headless -j run ) &
+    pids="$pids $!"
+    ( cd frontend && exec {{yarn}} dev ) &
+    pids="$pids $!"
+    # Loopback sidecars this service needs (a Rust worker, a Python shim, …).
+    # Uncomment + adapt per service:
+    # ( cd <sidecar> && exec bacon --headless -j run ) &
+    # pids="$pids $!"
+    # ( cd <pysidecar> && exec uv run <package> ) &
+    # pids="$pids $!"
+    wait
+
+# Build: frontend, then the rust workspace.
+build:
+    {{yarn}} build
+    cargo build --release --workspace
+
+# Lint/format/typecheck across the repo.
+lint:
+    {{yarn}} lint
+    cargo clippy --workspace --all-targets -- -D warnings
+
+format:
+    {{yarn}} format
+
+# Tests: rust workspace.
+test:
+    cargo test --workspace

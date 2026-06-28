@@ -8,8 +8,11 @@ user-invocable: true
 > config) are deliberate and battle-tested for a 1GB Pi. But the crate ecosystem
 > moves — if a newer approach is clearly better for a given app (e.g. a real
 > connection pool when concurrency demands it, or dropping the DB entirely when
-> stateless), take it and note why. Read a sibling app's backend live for a
-> worked example; pin nothing from memory — prefer the latest crate versions.
+> stateless), take it and note why. The shipped `*.example` files
+> (`config.rs`/`lib.rs`/`Cargo.toml`/`e2e_stack`/`bacon.toml`) are canonical and
+> self-sufficient; a cloned sibling's backend is an optional fuller example, not
+> required. Read one live for a worked example if it's checked out; pin nothing
+> from memory — prefer the latest crate versions.
 
 # rust-axum
 
@@ -26,7 +29,11 @@ user-invocable: true
   migrations gated on `PRAGMA user_version`. **Skip the DB entirely if stateless**
   (a pure fan-in dashboard has no durable state).
 - **Config = plain `env::var()` → `Config` struct** with `Config::from_env()`. No
-  figment/clap/envy.
+  figment/clap/envy. The seam contract (fixed so the frontend + deploy halves
+  line up): bind `<APP>_BIND` (default `0.0.0.0:3010`); `dev_auth` from
+  `DEV_AUTH=1` OR `<APP>_OPEN=1`; `<APP>_DB_PATH`; `STATIC_DIR` (default
+  `./dist`). `<app>` lowercase, `<APP>` the uppercase env prefix. Line width 100
+  (set in `.editorconfig`). See `config.rs.example`.
 - **SPA served by the binary** (frontend-agnostic — see below).
 - **Fail closed:** refuse to boot in prod without required secrets.
 - **One service or many.** Default = one backend binary. Split out separate work
@@ -59,6 +66,24 @@ shared/               # optional: shared Serialize types
                       #   binary/config/status, share shared/
 ```
 
+## Starter files
+
+Copy-pasteable skeletons sit beside this SKILL.md — copy each, replace `<app>`
+(lowercase) / `<APP>` (uppercase env prefix), strip the placeholder comments,
+then split `lib.rs.example` into the per-file modules above as the app grows.
+They use the pinned seam contract; don't invent alternative env names.
+
+- `Cargo.toml.example` — workspace skeleton: `[workspace]` (resolver 2, members
+  = `backend` + `e2e`) + the `[workspace.dependencies]` table.
+- `config.rs.example` — `Config` + `from_env()` (the four contract fields).
+- `lib.rs.example` — boot flow (dotenv → tracing → `Config::from_env` →
+  `AppState` → router → serve) plus the `serve_spa` handler, `csp_layer()`, and
+  the forward-auth `Auth` extractor with the `dev_auth` bypass.
+- `e2e_stack.rs.example` — the `Stack::start()` harness (spawn the binary, temp
+  SQLite, `DEV_AUTH=1`, poll `/status`, kill on `Drop`).
+- `bacon.toml.example` — the backend dev runner used by `just dev` (`default_job
+= run`, a `background` run job, `kill_then_restart`, `watch = [".env"]`).
+
 ## Deps (preferred crates — take the latest of each)
 
 `[workspace.dependencies]`, latest versions: axum (`macros`,`tokio`,`tracing`);
@@ -66,8 +91,9 @@ axum-extra (`cookie`,`cookie-signed`,`typed-header`); tokio (`full`); tower-http
 (`fs`,`set-header`,`trace`,`cors`); reqwest (`json`,`rustls-tls`,
 `default-features=false`); serde/serde_json; thiserror; anyhow; tracing +
 tracing-subscriber (`env-filter`); chrono; uuid (`v4`); url; hex; dotenvy;
-rusqlite (`bundled`); openidconnect (only if the app does its own OIDC — usually
-not, it's behind oauth2-proxy). dev-deps: `tempfile`, `wiremock`.
+mime_guess (the `serve_spa` handler uses it); rusqlite (`bundled`); openidconnect
+(only if the app does its own OIDC — usually not, it's behind oauth2-proxy).
+dev-deps: `tempfile`, `wiremock`. (`Cargo.toml.example` ships this table.)
 
 ## Serving the SPA (frontend-agnostic)
 
@@ -108,7 +134,8 @@ async fn serve_spa(State(state): State<AppState>, uri: Uri) -> Response {
 ```
 
 Adds a `mime_guess` dep. Serves whatever `dist/` Vite produced — React or
-Svelte, no difference here.
+Svelte, no difference here. (The full handler + `csp_layer()` ship in
+`lib.rs.example`.)
 
 ## Security (house patterns — apply every time)
 
@@ -116,14 +143,23 @@ Svelte, no difference here.
   responses: `default-src 'self'; script-src 'self'; style-src 'self'
 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:
 https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self';
-frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'`.
-  Extend `img-src`/`media-src` per app. **HSTS / X-Frame-Options /
-  X-Content-Type-Options are Traefik's job**, not the binary's.
+manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none';
+form-action 'self'`. (`manifest-src 'self'` so the SPA's webmanifest loads —
+  spa-frontend ships one.) Extend `img-src`/`media-src` per app. **HSTS /
+  X-Frame-Options / X-Content-Type-Options are Traefik's job**, not the
+  binary's.
 - **Sessions** (only if the app has its own login): `axum-extra` `SignedCookieJar`
   keyed by `SESSION_KEY` (≥64 hex bytes). Cookie `http_only`, `same_site=Lax`,
   `secure` in prod, `path=/`. Tiny payload (`sub|email`). Refuse to boot in prod
   without the key. Most apps skip this — they sit behind oauth2-proxy (see
   `sibling-app` for the edge trust model + `X-Auth-Request-*` headers).
+- **Forward-auth gate + the dev bypass.** Behind oauth2-proxy the binary only
+  asserts the edge vouched: a `FromRequestParts` `Auth` extractor on every
+  `/api/*` handler that 401s unless `X-Auth-Request-User` is present. **This
+  check is bypassed when `cfg.dev_auth` is set — `DEV_AUTH=1` (local dev) OR
+  `<APP>_OPEN=1` (a LAN-only deploy with no oauth2-proxy).** That single switch
+  is the linchpin: it's how `just dev`, the e2e harness, and a LAN deploy all
+  reach `/api/*`. `/status` is always unauth.
 - **Service-to-service tokens:** load from env, never log. Constant-time compare
   with `subtle::ConstantTimeEq`. Bearer in `Authorization` header only (query
   `?token=` solely where a client can't set headers, and keep those routes out of
@@ -146,7 +182,7 @@ version, <upstream>_healthy: bool}` — booleans + version only, no secrets. The
   model) that spawns the real binary + temp SQLite (`tempfile::tempdir`) + `DEV_AUTH=1`,
   drives it with a `reqwest` client (`cookie_store(true)`), polls `/status` until
   up, kills children on `Drop`. Tests `#[ignore]`, run in CI via
-  `cargo test -p <name>-e2e -- --ignored`.
+  `cargo test -p <app>-e2e -- --ignored`. (Harness ships in `e2e_stack.rs.example`.)
 - **Mock HTTP upstreams** with `wiremock` (dev-dep) for a fan-in app — stub each
   upstream incl. 500s and assert graceful handling. (When the app spawns real
   sidecars instead, drive those; for an app that fans in third-party HTTP

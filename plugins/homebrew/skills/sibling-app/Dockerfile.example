@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1
+#
+# Single-service image builder for a sibling app.
+#   docker build --target <name> -t <name> .
+#
+# The Rust backend cross-compiles (tonistiigi/xx) to a static musl binary on
+# scratch and ships the built SPA. The node-alpine tag below must match
+# frontend/.node-version (here: 26).
+#
+# Multi-service: add a frontend-build stage per SPA-serving backend, a
+# backend-build + runner stage per Rust binary (only the frontend-serving one
+# COPYs dist/), and for a non-Rust sidecar a separate base (e.g.
+# python:<latest>-slim + uv sync), NOT scratch. dockerimage.yaml builds each via
+# its --target.
+
+# --- Cross-compilation helper ---
+FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
+
+# ============================================================================
+# Frontend (vendored yarn — no corepack)
+# ============================================================================
+# The yarn binary is committed at .yarn/releases and pinned by .yarnrc.yml's
+# `yarnPath`, so the build doesn't depend on the base image's bundled yarn (node
+# 25+ dropped the corepack bundle). Manifests are copied first so `install`
+# caches across source-only changes.
+FROM --platform=$BUILDPLATFORM node:26-alpine AS frontend-build
+WORKDIR /app
+COPY frontend/package.json frontend/yarn.lock frontend/.yarnrc.yml ./
+COPY frontend/.yarn/releases ./.yarn/releases
+RUN node .yarn/releases/yarn-*.cjs install --immutable --network-timeout 1000000
+COPY frontend ./
+RUN node .yarn/releases/yarn-*.cjs build   # → /app/dist
+
+# ============================================================================
+# Rust backend (warm dep cache via stub source)
+# ============================================================================
+FROM --platform=$BUILDPLATFORM rust:1-alpine AS workspace-deps
+COPY --from=xx / /
+RUN apk add --no-cache clang lld musl-dev curl
+ARG TARGETPLATFORM
+RUN xx-apk add --no-cache musl-dev gcc
+WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY backend/Cargo.toml backend/Cargo.toml
+# Stub source so cargo can parse + warm the dep cache before real source lands.
+RUN mkdir -p backend/src \
+    && printf 'fn main() {}\n' > backend/src/main.rs \
+    && xx-cargo build --release -p <name>-backend
+
+FROM workspace-deps AS backend-build
+ARG TARGETPLATFORM
+COPY backend/src ./backend/src
+# `touch` so cargo notices the stub→real source swap and rebuilds the package.
+RUN touch backend/src/main.rs \
+    && xx-cargo build --release -p <name>-backend \
+    && cp target/*/release/<name>-backend /<name>-backend
+
+# ============================================================================
+# Runtime image (scratch + binary + dist + certs)
+# ============================================================================
+FROM scratch AS <name>
+WORKDIR /app
+LABEL org.opencontainers.image.description="<name> — <one-line description>"
+COPY --from=backend-build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=backend-build /<name>-backend ./<name>-backend
+COPY --from=frontend-build /app/dist ./dist
+ENV STATIC_DIR=./dist
+ENV <NAME>_DB_PATH=/data/<name>.db
+ENV <NAME>_BIND=0.0.0.0:3010
+USER 1000
+EXPOSE 3010
+CMD ["./<name>-backend"]

@@ -107,8 +107,12 @@ no mypy/pyright gate in the family today.
 
 ## Dockerfile (multi-stage, warm dep layer)
 
+Use the **latest** stable `python:<X.Y>-slim` tag at scaffold time — don't copy
+a sibling's pin (per `lint-format`: always latest, never inherit a stale pin).
+This is the one base image dependabot's `docker` ecosystem then keeps bumped.
+
 ```dockerfile
-FROM python:3.14-slim AS runner
+FROM python:3.14-slim AS runner   # bump to the current stable minor at scaffold
 WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 COPY <svc>/pyproject.toml <svc>/uv.lock ./

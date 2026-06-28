@@ -1,0 +1,28 @@
+# Automerge Dependabot PRs on the plain GITHUB_TOKEN. SHA pins are illustrative;
+# re-resolve before committing (see ci.yaml.example header).
+name: Automerge
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Skip github-actions bumps: they edit .github/workflows/*, which GITHUB_TOKEN
+    # cannot merge (no `workflows` permission scope) — the run would fail and leave
+    # a red X. Merge those by hand (and review the CI change). Everything else
+    # (npm/cargo/uv/docker) automerges on the plain GITHUB_TOKEN.
+    if: github.actor == 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/github_actions')
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Automerge Dependabot PR
+        uses: eetu/action-automerge@3b0f8a84c10e656fd6775c5792265c64c8961ed9 # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,52 @@
+# Security
+
+<name> is a self-hosted, single-household app. It runs on a home Pi behind
+oauth2-proxy forward-auth and a reverse proxy (Traefik) — it is **not** a
+public, multi-tenant service. The threat model is: <state it in one or two
+sentences — what must stay isolated, and surviving an honest operator
+misconfiguration without silently leaking secrets>.
+
+## Trust boundaries
+
+- **Edge auth (forward-auth).** The app sits behind oauth2-proxy; it trusts
+  `X-Auth-Request-User` / `X-Auth-Request-Email` only because Traefik strips
+  any client-supplied copy before forwarding. The app validates the headers are
+  present (401 if not), never logs them (PII), and runs no own login/session in
+  this mode. <If anonymous access is allowed, say so + what's gated.>
+
+- **CSP / response headers.** <The CSP the backend sets (see rust-axum) — what's
+  allowed to load, why any `unsafe-*` is present, frame-ancestors, etc.>
+
+- **Per-user / per-resource isolation.** <If the app holds per-user data, how
+  every query is scoped; if single-user, say there's no multi-tenant model.>
+
+- **Inter-service auth.** <Each loopback sidecar/worker: the bearer token it
+  requires (constant-time compare), and that loopback bind is the primary
+  control. Delete if single-binary.>
+
+- **Outbound fetches / filesystem.** <Any upstream the app calls (host
+  allowlist, verified TLS, size caps) and any path built from external input
+  (sanitized before hitting the filesystem; no `..` escape). Delete if none.>
+
+## Secrets
+
+All secrets are injected at runtime via env (never baked into images or
+committed): <list them, e.g. `<NAME>_TOKEN`, sidecar tokens>. The `.env.example`
+files hold placeholders only; `.env`, `*.db*`, and any credential/data dirs are
+gitignored. Containers run as a non-root UID.
+
+## Accepted risks
+
+<Known and intentionally not "fixed" — documented so the choice is deliberate.
+For each: what it is, why accepted, and what would make you revisit. Delete the
+section if there are none.>
+
+## Out of scope
+
+<What's deliberately not built — e.g. multi-tenant hardening, rate-limiting
+against a hostile internal user — so it isn't "added" by accident.>
+
+## Reporting
+
+This is a personal project. Flag an issue privately to the maintainer rather
+than opening a public issue with exploit detail.

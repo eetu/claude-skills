@@ -97,12 +97,14 @@ how an app once drifted to its own names; copy the canonical file.
 `useTheme()` and style via the `css={{}}` prop (CSS-in-JS — **not** tailwind /
 CSS-modules). Here `themes.ts` **is** the in-repo source of truth — `css`-prop
 styling can't read `--halo-*` CSS vars, so the tokens are mirrored once into TS
-and the CSS file is not shipped. Seed a new React app by **copying a sibling's
-`themes.ts` verbatim** (the app's `CLAUDE.md` says which sibling), not by
-re-deriving values from `colors_and_type.css` by hand. Keep the two visually in
-lockstep when the canonical CSS moves; a TS-token React app is **not** "CSS
-drift". The per-app `CLAUDE.md` is authoritative on how its theme is sourced —
-follow it. See the `sibling-app` skill for the app skeleton.
+and the CSS file is not shipped. Seed a new React app by **deriving `themes.ts`
+from the shipped canonical `colors_and_type.css`** (the CSS is the source of
+truth, and React is the legacy path) — or, as a shortcut when a React sibling is
+cloned, copy its `themes.ts` verbatim (the app's `CLAUDE.md` says which). Once
+seeded, `themes.ts` is the in-repo source; keep it visually in lockstep when the
+canonical CSS moves — a TS-token React app is **not** "CSS drift". The per-app
+`CLAUDE.md` is authoritative on how its theme is sourced — follow it. See the
+`sibling-app` skill for the app skeleton.
 
 ## Per-app design skill (the layering recipe)
 
