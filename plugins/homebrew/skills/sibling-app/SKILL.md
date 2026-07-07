@@ -61,7 +61,7 @@ If invoked with no concrete task, ask what the app does, then walk the scaffold.
   backend/   # see rust-axum — carries its own CLAUDE.md
   frontend/  # see spa-frontend — has .node-version + vendored .yarn/releases + CLAUDE.md
   shared/    # optional shared types
-  e2e/       # optional integration crate
+  integration/ # optional spawned-binary integration crate (real backend, no UI)
   <worker>/  # optional extra Rust service crate(s) — workers/sidecars
              #   (e.g. an ffmpeg media worker, a compat API)
   <sidecar>/ # optional non-Rust sidecar, own toolchain, NOT in the workspace
@@ -251,6 +251,42 @@ When copying from a sibling app: `<sibling>`→`<name>` (crate names, image, pru
 package-name); `<SIBLING>_IMAGE_TAG`/`VITE_<SIBLING>_IMAGE_TAG`→`<NAME>_IMAGE_TAG`;
 branch (`main`; some apps use `develop`); env prefixes (`<NAME>_DB_PATH`, `BIND`,
 `STATIC_DIR`); pre-commit cargo glob.
+
+## Testing (tiers — cross-cutting; each skill owns its slice)
+
+**Tier = what's real vs mocked. Tool = the fidelity you need. They're independent
+axes** — a Playwright test can be an _integration_ test; a vitest test can be a
+_unit_ test. "It uses a browser" does not decide the tier.
+
+| Tier            | What's real                     | Mocked                                                                                    | Lives in                                                                                                              |
+| --------------- | ------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Unit**        | one module / component          | all its collaborators                                                                     | next to the code — Rust `#[cfg(test)]`; SPA `__tests__/*.test.ts`                                                     |
+| **Integration** | several of _our_ units together | only the system edges (DB → temp-real, external HTTP → wiremock, the SPA's `/api` → stub) | backend: an `integration` crate (→ rust-axum); frontend: vitest / Playwright with the backend mocked (→ spa-frontend) |
+| **E2E**         | the _whole_ stack               | only third-party externals                                                                | a top-level `e2e/` — Playwright, real SPA ↔ real backend. The smallest, slowest tier; golden paths only               |
+
+Reserve the word **e2e** for the full stack. The spawned-binary backend harness is
+_integration_ (real backend, no frontend) — name the crate `integration`, not `e2e`.
+
+**Placement (mono- vs single-repo — same taxonomy, only the path prefix differs).**
+
+- App-specific tests live **inside the app**: `apps/<app>/frontend/src/**/__tests__`,
+  `apps/<app>/integration/`, `apps/<app>/frontend/e2e/`.
+- Shared tests + fixtures live in the **shared package / parent** (e.g.
+  `packages/<lib>/**/__tests__`); app suites import the helpers.
+- **Single-app repo** = the same, minus the `apps/*` nesting: tests next to the
+  code, `integration/` + `e2e/` at the repo root.
+
+**CI mapping.** Path-filter the jobs so each tier runs only when its area changed
+(a Rust-only PR skips the SPA + Playwright checks, and vice-versa): a `changes`
+job (`dorny/paths-filter`) gating `frontend` / `backend` / `integration` /
+`browser-e2e`. Filtered jobs **skip** (they don't hang), so require a single
+always-run **`ci-gate`** aggregator in branch protection — never the filtered jobs
+by name (a _skipped required_ check strands the PR at "waiting for status"
+forever). → App-level tooling.
+
+**How much.** Test each behaviour at the lowest tier that catches it; don't
+re-assert the same logic at three tiers. Bulk = unit; a handful of integration for
+the wiring + edges; a few e2e golden paths (slowest, flakiest) on a slower cadence.
 
 ## Edge security / deploy trust model (cross-cutting — every app, any backend)
 

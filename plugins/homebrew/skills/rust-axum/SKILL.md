@@ -173,21 +173,33 @@ version, <upstream>_healthy: bool}` — booleans + version only, no secrets. The
 - Secrets via env only; `.env`, `*.db*`, data dirs in `.gitignore`. Errors via
   `tracing::error!(?err)` — formatted, never raw secret values.
 
-## Tests (this is where the backend test effort goes — frontend has none)
+## Tests
+
+The tier model (unit / integration / e2e — defined by what's real vs mocked — and
+_where_ they live in a mono- vs single-app repo) is cross-cutting: see
+**sibling-app → Testing**. The backend's slice:
 
 - **Unit:** inline `#[cfg(test)] mod tests` in the source file. `#[test]` for
   sync, `#[tokio::test]` for async. Test pure logic — parsers, sanitizers,
   `Config::from_env`, constant-time compare, migration idempotency.
-- **Integration:** a `Stack::start()` harness (a dedicated `e2e` crate is the
-  model) that spawns the real binary + temp SQLite (`tempfile::tempdir`) + `DEV_AUTH=1`,
-  drives it with a `reqwest` client (`cookie_store(true)`), polls `/status` until
-  up, kills children on `Drop`. Tests `#[ignore]`, run in CI via
-  `cargo test -p <app>-e2e -- --ignored`. (Harness ships in `e2e_stack.rs.example`.)
+- **Integration:** a `Stack::start()` harness in a dedicated **`integration`**
+  crate (`apps/<app>/integration/` in a monorepo, `integration/` at the root of a
+  single-app repo) that spawns the real binary + temp SQLite (`tempfile::tempdir`)
+  - `DEV_AUTH=1`, drives it with a `reqwest` client (`cookie_store(true)`), polls
+    `/status` until up, kills children on `Drop`. Tests `#[ignore]` (they bind a
+    port + spawn a process), run in CI via
+    `cargo test -p <app>-integration -- --ignored`. (Harness ships in
+    `e2e_stack.rs.example`.) This is **integration, not e2e**: the backend is real,
+    the frontend is absent, and third-party HTTP upstreams are wiremocked — reserve
+    "e2e" for a real-SPA-↔-real-backend suite.
 - **Mock HTTP upstreams** with `wiremock` (dev-dep) for a fan-in app — stub each
   upstream incl. 500s and assert graceful handling. (When the app spawns real
   sidecars instead, drive those; for an app that fans in third-party HTTP
   upstreams, wiremock is the right call.) Axum handlers are plain async fns — no
   `axum-test`/`tower::oneshot` in the house style.
+
+(The frontend has its own unit / component / e2e tiers now — see **spa-frontend →
+Testing**; the backend is no longer "where the test effort goes".)
 
 ## Container
 

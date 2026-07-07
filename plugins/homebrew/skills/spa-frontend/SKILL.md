@@ -185,7 +185,42 @@ sibling Svelte app's `frontend` is an optional fuller example.
 
 Dockerfile/CI deltas vs React: **none of substance** — the `frontend-build`
 stage is still just `yarn build`, and CI's frontend job runs the same
-`lint/format/typecheck/build`. Only `typecheck` resolves to `svelte-check`.
+`lint/format/typecheck/build` (+ `test`, see below). Only `typecheck` resolves to
+`svelte-check`.
+
+## Testing (frontend)
+
+Tiers + placement are cross-cutting → **sibling-app → Testing**. The frontend's
+tools:
+
+- **vitest**, two projects in one config, split by filename:
+  - **unit** — `*.test.ts` → node env. Pure logic, stores, the api layer, a state
+    machine. Fast, no browser.
+  - **browser** — `*.svelte.test.ts` → **real headless chromium** via
+    `@vitest/browser-playwright` + `vitest-browser-svelte` (React:
+    `vitest-browser-react`). Component render + anything needing a real DOM / WebGL
+    / canvas jsdom can't do. Lighter than a full-app Playwright run.
+  - Co-locate both in `__tests__/` next to the source. CI's frontend job installs
+    chromium once and runs `yarn test` (both projects, across the workspace).
+- **File naming — `Foo.svelte.test.ts`** (Svelte's port of React's `Foo.test.tsx`).
+  A test can't _be_ a `.svelte` file (that's a component the compiler owns), so
+  `.svelte` becomes a name segment — and it's load-bearing: SvelteKit's vitest
+  setup routes `*.svelte.{test,spec}.ts` into the browser (DOM) project and plain
+  `*.{test,spec}.ts` into the node project. (It ends in `.test.ts`, so it isn't
+  mistaken for a `*.svelte.ts` rune module.)
+- **Playwright** = the full built app in a real browser: reserve it for **e2e**
+  (real SPA ↔ real backend) and for **as-shipped guards** (below).
+
+**Two fidelity floors pick vitest-vs-Playwright, independent of the tier:**
+
+- _Needs a real browser?_ AudioWorklet / WebGL / real layout ⇒ vitest **browser**
+  mode (or Playwright), never node/jsdom.
+- _Needs the real shipped build?_ Bundling / asset-path / growable-ArrayBuffer-class
+  regressions only reproduce against `vite build && preview` ⇒ **Playwright**.
+
+_Example — WASM:_ pure decode/compute → **node unit** (WASM runs in node); WASM in
+a live audio graph (AudioWorklet) → vitest **browser** integration; "plays as
+shipped" → **Playwright** against the built bundle.
 
 ## Starter files
 
