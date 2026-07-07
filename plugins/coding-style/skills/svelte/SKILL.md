@@ -67,12 +67,32 @@ hand-sort imports or argue layout — run `yarn lint:fix` / `yarn format:fix`.
   is on, and unkeyed lists mis-patch on reorder.
 - **Never `{@html}`** unless the value is provably sanitized (`svelte/no-at-html-tags`).
 - **Shared reactive state lives in `.svelte.ts` modules** — runes work there too.
-  Export a factory returning getters (e.g. `createResource()` exposing
-  `get data()`/`start()`/`stop()`); plain non-reactive helpers stay in `.ts`.
+  This is the store layer (the jotai/`useSettings` equivalent): the moment **two**
+  components read the same state, hoist it here and import it directly — do **not**
+  thread it through props or a shared parent. Props are for a leaf's own inputs
+  (data to render) + callback props (events up), never for shared state. Export a
+  singleton `$state` object, or a factory returning getters
+  (`createResource()` → `get data()`/`start()`/`stop()`) for per-instance
+  resources; plain non-reactive helpers stay in `.ts`. **Gotcha:** you can't
+  `export` a `$derived` from a module (`derived_invalid_export`) — for a memoised
+  shared selector, put it as a field on an exported singleton _class_
+  (`class V { x = $derived(…) } export const v = new V()`), or export a function
+  that returns the computed value.
+- **Copy-paste is a design smell, not a shortcut.** A rule or block copied a
+  second time (a CSS base, a derivation, a handler) is the signal to hoist it —
+  to a store, a global style, or a `.ts` helper — _before_ it drifts (and before
+  extracting a component silently leaves its copy behind — a classic regression).
+  Duplicate only when the copies are coincidentally alike and expected to diverge;
+  don't over-generalize genuinely separate things. Ideals, not rails — when
+  unsure, hoist.
 - **Styling = scoped `<style>` consuming `--halo-*`** (see `halo-design`). No
-  CSS-in-JS, no Tailwind; the only global CSS is the one token-file import in the
-  root `+layout.svelte`. Don't reach for `:global()` unless styling injected
-  markup.
+  CSS-in-JS, no Tailwind. Scoped styles **don't cross component boundaries**, so
+  an app-wide element/utility base (the themed `button`/`select`/`.icon-btn`)
+  belongs as **one `:global()` rule in the root `+layout`** — not re-typed in
+  every component (it drifts, and an extraction that forgets it silently drops the
+  styling); component-specific variants then override the global base on
+  specificity. The other global CSS is the one token-file import in the root
+  layout. Otherwise keep `:global()` for injected/slotted markup only.
 
 ## SvelteKit
 

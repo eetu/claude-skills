@@ -1,6 +1,6 @@
 ---
 name: spa-frontend
-description: The frontend half of a homebrew web app — a Vite-built SPA that the Rust backend embeds and serves, talks to the backend over /api, styled with the halo-design tokens and written in ts-style. Use when building or working on the UI of a sibling app. Defines a framework-agnostic contract (build → embed → proxy → conventions); SvelteKit (Svelte) is the default for new apps, with React documented as the legacy-by-inertia alternative for existing apps. Pairs with rust-axum (backend) and sibling-app (assembly).
+description: The frontend half of a homebrew web app — a Vite-built SPA that the Rust backend embeds and serves, talks to the backend over /api, styled with the halo-design tokens and written in ts-style. Use when building or working on the UI of a sibling app. Defines a framework-agnostic contract (build → embed → proxy → conventions → component/state decomposition); SvelteKit (Svelte) is the default for new apps, with React documented as the legacy-by-inertia alternative for existing apps. Pairs with rust-axum (backend) and sibling-app (assembly).
 user-invocable: true
 ---
 
@@ -67,6 +67,46 @@ user-invocable: true
 7. **Icons + install metadata (every app — don't skip).** Ship a home-screen-
    installable icon set in the Vite static dir (`static/` SvelteKit, `public/`
    React) so iOS/Android installs aren't blank. See the recipe below.
+
+## Component & state decomposition (name the seams in the plan; decompose early)
+
+A route is a **composition root**, not a bucket to grow a monolith in. The plan
+for any non-trivial view must name its **component seams** (which blocks become
+files) and its **state seams** (what's shared vs local) _up front_ — a plan that
+skips this is the actual defect. The failure mode it prevents (learned the hard
+way): one `+page.svelte` accretes every overlay, list, toolbar, and the global
+keyboard handler until it's ~2000 lines, and every block is welded to the page's
+locals. Pulling a block out _then_ means untangling shared state, CSS scoping,
+and that shared handler all at once — expensive and error-prone. Decomposing a
+grown monolith is far more work than never letting it grow.
+
+- **Extract early — bias toward too-soon.** Creating a component that later gets
+  binned is cheap (doubly so with an LLM); a monolith you can't cheaply move a
+  block out of is expensive. When a block has one clear responsibility (an
+  overlay, a list, a toolbar, a panel), give it a file — don't wait for it to get
+  big. Smells that it's overdue: a route component past ~300–400 lines, or a block
+  you'd describe with an "and" ("the list _and_ the player"). Priors, not rails —
+  but the bias is toward splitting.
+- **The seam: data-down / events-up for leaves, a shared store for shared state.**
+  A child that only renders what it's handed + reports user intent takes **props**
+  (data) + **callback props** (events) — that's a clean leaf, _not_ prop-drilling.
+  State that **two or more** components read/write is **hoisted to a store** (a
+  `.svelte.ts` rune module — the jotai/`useSettings` equivalent) and read
+  directly, never threaded through a shared parent as props. Getting this split
+  right is the design; do it before the monolith forms, not after. (Framework
+  mechanics: `coding-style:svelte`.)
+- **The root owns orchestration + the overlays it opens; it delegates the rest.**
+  Stores, the top-level layout, and the modals it controls stay in the route; each
+  cohesive block is a child that reads the stores and takes callbacks.
+- **Minimize copy-paste across components.** A base or block copied a second time
+  (a CSS control base, a derivation, a handler) is the signal to hoist it — to a
+  store, a global style (see `coding-style:svelte`), or a shared helper — _before_
+  it drifts. Extracting a component that silently left its copy-pasted base behind
+  is a classic regression. Duplicate only when the copies are coincidentally alike
+  and expected to diverge; don't over-generalize genuinely separate things.
+- **Guard before you move.** Before extracting a block that isn't already covered,
+  add a thin as-shipped test (Playwright) asserting its behaviour, so the move is
+  provably behaviour-preserving. Cheap insurance — see Testing.
 
 ## Icons & PWA metadata (how to create + regenerate)
 
