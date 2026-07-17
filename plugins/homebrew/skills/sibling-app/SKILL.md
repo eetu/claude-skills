@@ -181,8 +181,10 @@ for the multi-service / polyglot fan-out.
 - **Git hooks:** `install-hooks.sh` does `git config core.hooksPath .githooks`.
   `pre-commit` (`set -e`, early-exit on empty staged set) inspects staged paths:
   `frontend/` → `yarn lint` + `yarn format`; `backend|shared|Cargo.*` →
-  `cargo clippy --workspace --all-targets -- -D warnings` (covers all Rust
-  service crates at once). Add a branch per non-Rust sidecar (e.g. a Python one:
+  `cargo clippy --workspace --all-targets -- -D warnings` + `cargo fmt --all --
+--check` (clippy + rustfmt, covering all Rust service crates at once — the
+  Rust half mirrors the frontend's lint **and** format). Add a branch per non-Rust
+  sidecar (e.g. a Python one:
   `shim/*.py|shim/pyproject.toml` → `uv run ruff check src`).
   - **Commit both scripts with the executable bit (mode 755).** Files written by
     an editor/tool land 644, and git stores the mode — a 644 `install-hooks.sh`
@@ -203,9 +205,10 @@ for the multi-service / polyglot fan-out.
   action's Releases page).
 - **CI (`ci.yaml`):** `frontend` job (`setup-node` with `node-version-file:
 frontend/.node-version` → yarn install --immutable → lint, format,
-  typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` + clippy,
-  `Swatinem/rust-cache@v2`, clippy `-D warnings`, `cargo test`, build --release;
-  one job covers the whole Rust workspace). Add `e2e` job if there's an e2e
+  typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` with the
+  `clippy, rustfmt` components, `Swatinem/rust-cache@v2`, clippy `-D warnings`,
+  `cargo fmt --all -- --check`, `cargo test`, build --release; one job covers the
+  whole Rust workspace). Add `e2e` job if there's an e2e
   crate. Each non-Rust sidecar gets its own job in its toolchain (e.g. a Python
   one: `astral-sh/setup-uv` → `uv sync --frozen` → `ruff check src`).
 - **`dockerimage.yaml`:** `dorny/paths-filter` gate → QEMU + buildx → ghcr login

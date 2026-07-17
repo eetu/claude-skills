@@ -57,8 +57,11 @@ lint:
     {{yarn}} lint
     cargo clippy --workspace --all-targets -- -D warnings
 
+# Formatting check (frontend prettier + rust rustfmt). Apply with
+# `yarn format:fix` / `cargo fmt --all`.
 format:
     {{yarn}} format
+    cargo fmt --all -- --check
 
 # Tests: rust workspace.
 test:

@@ -32,8 +32,9 @@ if [ "$run_front" = 1 ]; then
 fi
 
 if [ "$run_rust" = 1 ]; then
-	echo "pre-commit: rust (clippy, whole workspace)"
+	echo "pre-commit: rust (clippy + fmt, whole workspace)"
 	cargo clippy --workspace --all-targets -- -D warnings
+	cargo fmt --all -- --check
 fi
 
 # if [ "${run_shim:-0}" = 1 ]; then
