@@ -158,6 +158,47 @@ magick /tmp/ati.png -background "$BG" -flatten -alpha off -type TrueColor PNG24:
   already in the template. Don't put these in a component `<svelte:head>` — keep
   them in the static HTML shell so they're present pre-hydration.
 
+## Auto-reload on a new deploy (stale-tab guard)
+
+A sibling ships frontend + backend in **one image**, so a deploy restarts the
+backend and (for an in-memory app) wipes its state. A tab left open then runs a
+**stale SPA against a newer backend** — protocol drift, dead room/session codes,
+failed lazy-chunk imports. Have the SPA notice a new build and reload itself.
+
+- **Trigger = SvelteKit's built-in version poll, NOT a backend semver.** Set
+  `kit.version.pollInterval` (e.g. `60_000`) in `svelte.config.js`. SvelteKit's
+  `version.name` **defaults to a fresh build timestamp every build**, so it flips
+  on every `:main` rebuild. It polls `_app/version.json` and, when the deployed
+  name differs from the running one, flips the `updated` store (`$app/state`). The
+  root `+layout.svelte` reacts:
+
+  ```js
+  import { updated } from "$app/state";
+  $effect(() => {
+    if (updated.current) location.reload();
+  });
+  ```
+
+  (SvelteKit already hard-reloads on a post-deploy chunk-load error; this just
+  makes it proactive instead of waiting for a failed lazy import.)
+
+- **Why not poll `/status` or `/api/version`?** Those expose the Cargo
+  `CARGO_PKG_VERSION` (nib serves `/api/version` → `{backend, core}`), which only
+  changes on a `v*` tag — a plain `:main` rebuild (the usual deploy) doesn't bump
+  it, so a version-poll reload would miss the common case. Keep those endpoints
+  for display / gatus / debugging; don't hang the reload off them. If you _do_
+  want a server-side signal, return a **per-build id** (a build timestamp or the
+  git SHA baked in at compile time), never the semver.
+- **Auto-reload vs a prompt.** A hard `location.reload()` is safe when there's no
+  client state to lose — e.g. an in-memory app whose redeploy already wiped the
+  server session (dice). If the SPA holds **unsaved** local state, show a quiet
+  "new version — tap to reload" affordance instead and let the user pick the
+  moment (same `updated.current` signal, gated behind a click).
+- **React (legacy):** no built-in `updated` store. Emit a build-id asset (a
+  `version.json` you write, or a `<meta name="build">` / `import.meta.env` value)
+  and poll-and-compare against the running build; reload on change. Same caveat —
+  key it off a per-build id, not the semver.
+
 ## React instantiation (current default — verified across the family)
 
 - React + Vite + `@vitejs/plugin-react` + `babel-plugin-react-compiler` (latest).
