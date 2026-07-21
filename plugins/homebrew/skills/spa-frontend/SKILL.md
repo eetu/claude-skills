@@ -182,13 +182,27 @@ failed lazy-chunk imports. Have the SPA notice a new build and reload itself.
   (SvelteKit already hard-reloads on a post-deploy chunk-load error; this just
   makes it proactive instead of waiting for a failed lazy import.)
 
-- **Why not poll `/status` or `/api/version`?** Those expose the Cargo
-  `CARGO_PKG_VERSION` (nib serves `/api/version` → `{backend, core}`), which only
-  changes on a `v*` tag — a plain `:main` rebuild (the usual deploy) doesn't bump
-  it, so a version-poll reload would miss the common case. Keep those endpoints
-  for display / gatus / debugging; don't hang the reload off them. If you _do_
-  want a server-side signal, return a **per-build id** (a build timestamp or the
-  git SHA baked in at compile time), never the semver.
+- **Why a build-timestamp beats a semver for the co-deployed case.** When the SPA
+  and backend ship in **one image**, `/status` or `/api/version` expose the Cargo
+  `CARGO_PKG_VERSION`, which only changes on a `v*` tag — a plain `:main` rebuild
+  (the usual deploy) doesn't bump it, so a semver poll would miss the common case.
+  Use the build-timestamp poll above; keep the version endpoints for display /
+  gatus / debugging. If you want a server-side freshness signal, return a
+  **per-build id** (build timestamp or git SHA baked in at compile time), not the
+  semver.
+- **When a semver comparison IS the right signal: an independently-deployed SPA,
+  or a shared engine artifact.** The build-timestamp poll assumes co-deployment.
+  It's the _wrong_ axis when the SPA and backend ship separately — e.g. the SPA on
+  GitHub Pages against a standalone backend — or when the browser runs a **WASM
+  build of an engine the backend also links natively** and the two must agree.
+  nib is the latter: `nib-core` compiles to both WASM (the browser's editor) and
+  native (the backend's op-sync), and they apply the same ops, so a version skew
+  is a _compatibility_ problem, not a stale-tab one. There the gate is a **semantic
+  engine/protocol version**: have the client compare its bundled version against
+  the server's and reload (or warn) on divergence. nib exposes exactly the pieces
+  — the SPA knows its WASM `core_version()`, the backend reports `/api/version` →
+  `{backend, core}`; a mismatch on `core` means the two engines disagree. Bump
+  that version when the wire/engine format changes, not every build.
 - **Auto-reload vs a prompt.** A hard `location.reload()` is safe when there's no
   client state to lose — e.g. an in-memory app whose redeploy already wiped the
   server session (dice). If the SPA holds **unsaved** local state, show a quiet
