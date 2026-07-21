@@ -112,3 +112,18 @@
   box-shadow: var(--halo-shadow);
   padding: var(--halo-card-padding);
 }
+
+/* ----------------------------------------------------------------------
+ * Base — a shared touch nicety for the mobile-first family. Disables iOS
+ * double-tap-to-zoom (which misfires on quick repeated taps, e.g. tapping dice /
+ * counters / +− steppers) while keeping pinch-zoom and scrolling intact. Scoped
+ * to tap targets on purpose — this file is tokens + primitives, not a full reset,
+ * so apps still own their own base styles.
+ * -------------------------------------------------------------------- */
+
+button,
+[role="button"],
+summary,
+label {
+  touch-action: manipulation;
+}
