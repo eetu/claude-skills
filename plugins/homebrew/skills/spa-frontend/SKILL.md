@@ -121,42 +121,65 @@ sibling app's `frontend` is an optional fuller example):
   PWA icons _themselves_; a pre-rounded source gets double-masked (a smaller
   squircle with gaps / odd corners). Let the OS round. The browser-tab favicon is
   square too — browsers don't round, and a square reads fine at tab size.
-- **Source SVGs** (committed, hand-edited — the per-app glyph from the design
-  skill, on an _opaque_ square bg, `rx` omitted):
-  - `favicon.svg` — full-bleed square glyph: the SVG favicon + raster source for
-    the any-purpose / apple-touch icons.
-  - `icon-maskable.svg` — same glyph shrunk to the maskable safe zone (~80%
-    centre) on the same full-bleed square bg so Android's adaptive mask can't clip
-    it. (Or derive it from `favicon.svg` by compositing the glyph at ~80% onto a
-    full-bleed bg — see the example `gen-icons.sh`.)
-- **Generated PNGs** (committed, so the build needs no rasterizer) via a
-  `scripts/gen-icons.sh` using **librsvg + ImageMagick** (`brew install librsvg
-imagemagick` — the apple-touch / maskable steps pipe through `magick`). Rerun
-  it after editing a source SVG; copy the script forward verbatim:
-
-```bash
-set -euo pipefail
-BG="#0f0f0f"   # the icon bg; -b fills corners opaque so none ever round
-rsvg-convert -w 192 -h 192 -b "$BG" favicon.svg       -o icon-192.png
-rsvg-convert -w 512 -h 512 -b "$BG" favicon.svg       -o icon-512.png
-rsvg-convert -w 32  -h 32  -b "$BG" favicon.svg       -o favicon-32.png
-rsvg-convert -w 192 -h 192 -b "$BG" icon-maskable.svg -o icon-192-maskable.png
-rsvg-convert -w 512 -h 512 -b "$BG" icon-maskable.svg -o icon-512-maskable.png
-# apple-touch-icon: opaque, no alpha (Apple guidance), square
-rsvg-convert -w 180 -h 180 -b "$BG" favicon.svg -o /tmp/ati.png
-magick /tmp/ati.png -background "$BG" -flatten -alpha off -type TrueColor PNG24:apple-touch-icon.png
-```
-
-- **`manifest.webmanifest`**: `name`, `short_name`, `description`,
-  `display: standalone`, `start_url: "/"`, `background_color` (`--halo-body`),
-  `theme_color`, and `icons` with both `purpose: "any"` (192/512) and
-  `purpose: "maskable"` (192/512).
+- **One source SVG** (committed, hand-edited — the per-app glyph from the design
+  skill, on an _opaque_ square bg, `rx` omitted): `favicon.svg`, a full-bleed
+  square glyph. It's the SVG favicon **and** the raster source for every PNG,
+  including the maskable one — no separate `icon-maskable.svg`; the script derives
+  it by compositing the glyph at ~80% onto a full-bleed bg (Android's adaptive
+  mask can't clip the safe zone).
+- **Generated PNGs** (committed, so the build needs no rasterizer) via
+  `scripts/gen-icons.sh` (ship `gen-icons.sh.example`) using **librsvg +
+  ImageMagick** (`brew install librsvg imagemagick` — apple-touch / maskable steps
+  pipe through `magick`). It writes `icon-192.png`, `icon-512.png`,
+  `apple-touch-icon.png` (opaque, alpha off — Apple guidance), and
+  `icon-maskable-512.png`. Rerun after editing `favicon.svg`; copy the script
+  forward verbatim.
+- **`manifest.webmanifest`** (ship `manifest.webmanifest.example`): `name`,
+  `short_name`, `description`, `display: standalone`, `start_url` + `scope` both
+  `/`, `background_color` + `theme_color` (`--halo-body`), and `icons` — the two
+  `purpose: "any"` PNGs (192/512) plus one `purpose: "maskable"` (512).
 - **HTML head** (`app.html` for SvelteKit, `index.html` for React/Vite — same
-  tags): `icon` (svg + 32px png), `apple-touch-icon`, `manifest`, `theme-color`
+  tags): `icon` (svg + the 192px png fallback), `apple-touch-icon`, `manifest`, `theme-color`
   (light + dark via `media`), `mobile-web-app-capable` +
-  `apple-mobile-web-app-capable`, `apple-mobile-web-app-title`. `viewport` is
-  already in the template. Don't put these in a component `<svelte:head>` — keep
-  them in the static HTML shell so they're present pre-hydration.
+  `apple-mobile-web-app-capable`, `apple-mobile-web-app-title`, and the
+  `viewport-fit=cover` viewport tag (below). Copy the shipped `app.html.example`
+  forward. Don't put these in a component `<svelte:head>` — keep them in the static
+  HTML shell so they're present pre-hydration.
+
+### iOS full-height & safe areas (the standalone-PWA traps)
+
+An installed PWA runs full-screen with no browser chrome, so the layout owns the
+whole display — including the notch and the home-indicator gesture area. Get these
+wrong and the app shows a dead band at an edge. Learned the hard way (a
+`window.innerHeight` "fix" that shipped the very band it meant to prevent):
+
+- **`viewport-fit=cover` is mandatory, not optional.**
+  `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`.
+  It's what extends the page edge-to-edge under the notch/home-indicator **and**
+  what makes `env(safe-area-inset-*)` resolve to non-zero — without it the insets
+  are all `0` and your safe-area padding silently does nothing.
+- **Full height is `100dvh` — never `100vh`, never a JS `innerHeight` hack.**
+  `100vh` is the _large_ viewport and overflows under iOS UI. A JS
+  `window.innerHeight → CSS var` mirror is **stale at launch** in a standalone PWA
+  (iOS reports a short viewport until the first geometry change) — it leaves an
+  empty band at the bottom that only a device rotate clears. Just use CSS:
+  `html, body { height: 100svh; height: 100dvh; }`. In standalone there's no
+  dynamic chrome, so `svh == lvh == dvh ==` the full screen and `100dvh` is stable
+  at launch. (The old "dvh is stale at launch" folklore was an iOS 16.0–16.3 bug,
+  fixed in 16.4 / 2023 — don't reintroduce a JS workaround for it.)
+- **Body owns the viewport; scroll an inner element.** Make `body` a non-scrolling
+  flex column (`margin: 0; overflow: hidden; display: flex; flex-direction: column`)
+  and let an inner `<main>` (`flex: 1; min-height: 0; overflow-y: auto`) be the
+  scroll container. Keeps a phantom page scrollbar from appearing behind
+  full-screen overlays.
+- **Pad off the insets, don't leave gaps.** Top chrome:
+  `padding-top: calc(<n>px + env(safe-area-inset-top))` (required —
+  `apple-mobile-web-app-status-bar-style: black-translucent` overlays the status
+  bar). A **fixed bottom bar** anchors to the true bottom edge and uses
+  `padding-bottom: env(safe-area-inset-bottom)` while extending its own
+  `background` into that inset — so the bar meets the physical edge with its
+  controls lifted above the home indicator (no visible dead strip). Landscape:
+  add `env(safe-area-inset-left/right)` too.
 
 ## Auto-reload on a new deploy (stale-tab guard)
 
@@ -322,6 +345,10 @@ shipped" → **Playwright** against the built bundle.
 Canonical SvelteKit templates ship beside this SKILL.md — copy each forward,
 rename off `.example`, and replace `<app>`/placeholder types with the real ones:
 
+- `app.html.example` — the static SvelteKit shell: `viewport-fit=cover` viewport,
+  PWA/apple-touch meta, per-scheme `theme-color` (see the iOS full-height notes above).
+- `manifest.webmanifest.example` — the PWA manifest (`standalone`, icons any + maskable).
+- `gen-icons.sh.example` — regenerate the icon PNGs from `favicon.svg` (librsvg + magick).
 - `vite.config.ts.example` — `:5173` dev server + `/api`,`/status` → `:3010` proxy.
 - `svelte.config.js.example` — adapter-static, `pages/assets: dist`,
   `fallback: index.html`.
