@@ -57,12 +57,35 @@ artifacts _or_ production code as appropriate.
 
 ## Wordmark
 
-`.halo-wordmark`: Inter 600, lowercase, `letter-spacing: -0.04em`, with an accent
-period/dot. House convention: the full wordmark is a short, dry pop-culture
-riff ending in the app's own name, which **collapses to the bare app name** (+
-accent dot) below the mobile breakpoint. The brand reads in the same typeface as
-the app's numerals so brand and data feel like one system. Each app writes its
-own; keep it terse and lowercase.
+`.halo-wordmark` is the canonical primitive (defined in `colors_and_type.css`)
+and every app renders through it: **Inter (`--halo-font-body`) 600, lowercase,
+`letter-spacing: -0.04em`, `white-space: nowrap`**, the app name in
+`--halo-text-main` followed by **exactly one** accent element — a trailing period
+`<span class="accent">.</span>` in `--halo-accent`.
+
+House convention: the full wordmark is a short, dry pop-culture riff ending in
+the app's own name (the riff is a muted weight-400 prefix in `--halo-text-muted`),
+and it **collapses to the bare app name** (+ accent dot) below the mobile
+breakpoint. The brand reads in the same typeface as the app's numerals so brand
+and data feel like one system. Each app writes its own; keep it terse and lowercase.
+
+**Sanctioned per-app overrides.** Two axes may deviate, but _only_ when the app's
+`<app>-design` skill documents the deviation with a reason — everything else
+(lowercase, `-0.04em`, single accent element, mobile collapse) still holds:
+
+- **Font.** Swap `--halo-font-body` for another face when the app's identity calls
+  for it — e.g. the scene apps (tracker, party) use an Amiga bitmap font for the
+  demoscene look. Do _not_ route the wordmark through `--halo-font-heading` (Space
+  Grotesk) by default — that's drift, not a choice.
+- **Accent form.** Instead of the trailing period, an app may accent a _genuinely
+  clever_ trailing letter-run — one that reveals a real word inside the name (e.g.
+  represent → `re`+accent-`present`). Still exactly one accent element. If the
+  substring isn't meaningful, use the period (dice is `dice.`, not `di`+`ce`).
+
+Deeper deviations (the whole word in accent, no dot at all) are allowed for a
+strong reason but must likewise be documented in the per-app skill — see
+tracker/party, whose demoscene title-screen treatment colours the whole word in
+`--halo-accent`.
 
 ## Glyph
 
