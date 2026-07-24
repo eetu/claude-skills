@@ -150,23 +150,48 @@ sibling app's `frontend` is an optional fuller example):
 
 An installed PWA runs full-screen with no browser chrome, so the layout owns the
 whole display — including the notch and the home-indicator gesture area. Get these
-wrong and the app shows a dead band at an edge. Learned the hard way (a
-`window.innerHeight` "fix" that shipped the very band it meant to prevent):
+wrong and the app shows a dead band at the bottom. Learned the hard way, and
+**verified on a physical device** (the simulator does not reproduce this — always
+test the installed shortcut on real hardware):
 
 - **`viewport-fit=cover` is mandatory, not optional.**
   `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`.
   It's what extends the page edge-to-edge under the notch/home-indicator **and**
   what makes `env(safe-area-inset-*)` resolve to non-zero — without it the insets
   are all `0` and your safe-area padding silently does nothing.
-- **Full height is `100dvh` — never `100vh`, never a JS `innerHeight` hack.**
-  `100vh` is the _large_ viewport and overflows under iOS UI. A JS
-  `window.innerHeight → CSS var` mirror is **stale at launch** in a standalone PWA
-  (iOS reports a short viewport until the first geometry change) — it leaves an
-  empty band at the bottom that only a device rotate clears. Just use CSS:
-  `html, body { height: 100svh; height: 100dvh; }`. In standalone there's no
-  dynamic chrome, so `svh == lvh == dvh ==` the full screen and `100dvh` is stable
-  at launch. (The old "dvh is stale at launch" folklore was an iOS 16.0–16.3 bug,
-  fixed in 16.4 / 2023 — don't reintroduce a JS workaround for it.)
+- **Full height: `100vh` when standalone, `100dvh` in a browser tab. This is the
+  crux, and it's counterintuitive.** In an installed iOS PWA the _dynamic_
+  viewport (`100dvh`, and `window.innerHeight`) is **stale at cold start** — iOS
+  doesn't compute it until the viewport is "exercised" by a geometry change, so it
+  resolves _short_ and leaves a blank band at the bottom that only a device rotate
+  clears (you can't trigger the recompute from JS — an `innerHeight`→CSS-var mirror
+  is stale too; don't try it). `100vh` resolves against the _static_ viewport,
+  computed at layout time, so it's correct from launch — and in standalone there's
+  no browser chrome, so `100vh` == the full screen (none of the usual "100vh
+  overshoots behind the toolbar" problem). A normal browser tab is the opposite:
+  there `100vh` hides content behind the collapsing toolbar, so it wants `100dvh`.
+  So detect the mode and switch:
+
+  ```js
+  // in the root layout, once on mount
+  const standalone =
+    window.navigator.standalone === true || // iOS-reliable
+    window.matchMedia("(display-mode: standalone)").matches; // installed elsewhere
+  document.documentElement.classList.toggle("standalone", standalone);
+  ```
+
+  ```css
+  html,
+  body {
+    height: 100svh;
+    height: 100dvh;
+  } /* browser tab */
+  html.standalone,
+  html.standalone body {
+    height: 100vh;
+  } /* installed PWA */
+  ```
+
 - **Body owns the viewport; scroll an inner element.** Make `body` a non-scrolling
   flex column (`margin: 0; overflow: hidden; display: flex; flex-direction: column`)
   and let an inner `<main>` (`flex: 1; min-height: 0; overflow-y: auto`) be the
