@@ -172,7 +172,7 @@ for the multi-service / polyglot fan-out.
 | `dependabot.yaml.example`            | `.github/dependabot.yml`             | npm `/frontend` + cargo `/` + docker + actions        |
 | `SECURITY.md.example`                | `SECURITY.md`                        | threat-model skeleton                                 |
 | `workflows/ci.yaml.example`          | `.github/workflows/ci.yaml`          | resolve SHAs first                                    |
-| `workflows/automerge.yaml.example`   | `.github/workflows/automerge.yaml`   | uses `eetu/action-automerge`                          |
+| `workflows/automerge.yaml.example`   | `.github/workflows/automerge.yaml`   | native `gh pr merge --auto`; needs `allow_auto_merge` |
 | `workflows/dockerimage.yaml.example` | `.github/workflows/dockerimage.yaml` | build+push linux/arm64 to GHCR                        |
 | `workflows/cve-scan.yaml.example`    | `.github/workflows/cve-scan.yaml`    | weekly trivy → Security tab                           |
 
@@ -218,16 +218,26 @@ frontend/.node-version` → yarn install --immutable → lint, format,
   `actions/delete-package-versions` prune untagged (keep 5). **One image per
   service** — repeat the build-push per service (build each service's image),
   each its own target stage + ghcr repo + paths-filter gate.
-- **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'`, uses the house
-  automerge action `eetu/action-automerge` on the plain `GITHUB_TOKEN`
-  (`contents: write` +
-  `pull-requests: write` — no extra read scopes needed). **Skip github-actions
-  bumps:** add `&& !startsWith(github.head_ref, 'dependabot/github_actions')` to
-  the job `if`. Those PRs edit `.github/workflows/*`, which `GITHUB_TOKEN` cannot
-  merge (no `workflows` permission scope exists) — the run would fail with a red
-  X. Merge them by hand (you want to eyeball CI changes anyway); a long-lived
-  PAT/App token just for action bumps is too much attack surface to justify.
-  The skip makes the job _skipped_, not failed. **`cve-scan.yaml`:** weekly
+- **`automerge.yaml`:** gates `github.actor == 'dependabot[bot]'` and turns on
+  **GitHub's native auto-merge** — `gh pr merge --auto --squash` on the plain
+  `GITHUB_TOKEN` (`contents: write` + `pull-requests: write` — no extra read scopes
+  needed). **Enable it on the repo as well**, or `--auto` is rejected:
+  `gh api --method PATCH repos/<owner>/<repo> -F allow_auto_merge=true` — off by
+  default, and the rejection reads like a workflow bug rather than a missing
+  setting. Native auto-merge waits only on **required** checks, which is precisely
+  what makes it right here: `main` is gated on one `ci-gate` job ("no required job
+  failed") while CI skips the other side by path filter, so a typical dependabot PR
+  leaves jobs SKIPPED. Anything that waits on _all_ checks waits forever on a skip
+  — the retired house action (`eetu/action-automerge`, now archived and read-only)
+  counted SKIPPED as pending, polled until its own timeout, and left every
+  dependabot PR red and unmergeable on otherwise-green CI. Don't reintroduce it.
+  **Skip github-actions bumps:** add
+  `&& !startsWith(github.head_ref, 'dependabot/github_actions')` to the job `if`.
+  Those PRs edit `.github/workflows/*`, which `GITHUB_TOKEN` cannot merge (no
+  `workflows` permission scope exists) — the run would fail with a red X. Merge
+  them by hand (you want to eyeball CI changes anyway); a long-lived PAT/App token
+  just for action bumps is too much attack surface to justify. The skip makes the
+  job _skipped_, not failed. **`cve-scan.yaml`:** weekly
   trivy, SARIF → Security tab, report-only; matrix over every service image
   (per-image SARIF category).
 - **`dependabot.yaml`:** npm(`/frontend`) + cargo(`/`) + docker + github-actions,
