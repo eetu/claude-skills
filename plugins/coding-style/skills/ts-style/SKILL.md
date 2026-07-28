@@ -1,6 +1,6 @@
 ---
 name: ts-style
-description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/eslint-config (npm package). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
+description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/eslint-config (npm package). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, comment discipline (the final model, never the iteration journey), and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
 user-invocable: true
 ---
 
@@ -100,6 +100,28 @@ not per-project.
 - **Prefix intentionally-unused bindings with `_`** so the linter stays quiet.
 - **JSDoc block comments** on non-obvious exported components/functions —
   short, says _why_, not _what_.
+
+## Comments: the final model, never the journey
+
+Comments describe the code **as it is** — a constraint, an invariant, a
+non-obvious why. They are read by someone months later with no memory of how
+the code got here, so:
+
+- **Never narrate iteration history.** No "previously X, now Y", no discarded
+  approaches, no corrections explained ("the earlier model was wrong because…"),
+  no session play-by-play. When a first version went off track and was pulled
+  back, the comments present the final design as if it had always been the
+  design. Git history holds the journey; comments hold the destination.
+- **No reviewer-directed commentary.** "This fixes the bug where…" and "changed
+  to match the new API" belong in the commit message, not the source.
+- **No provenance of working materials.** Don't cite the photo, recording,
+  screenshot or conversation that informed a value — state the resulting fact
+  (with numbers where they matter). Citable public sources (a spec, a patent,
+  Wikipedia) are fine when they genuinely help the next reader.
+- **Default to fewer.** If the code can say it, delete the comment. A wrong or
+  stale comment is worse than none — and every comment written for the person
+  watching the change (rather than the person reading the file) is noise the
+  moment it merges.
 
 ## Reference
 
