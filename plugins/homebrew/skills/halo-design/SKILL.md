@@ -31,6 +31,9 @@ artifacts _or_ production code as appropriate.
   plus `.halo-wordmark` / `.halo-card` primitives.
 - `assets/halo-logo.svg`, `assets/halo-wordmark.svg` — halo's ring glyph, the
   reference example of the glyph convention (see below).
+- `assets/mermaid-halo.md` — the family theme for **Mermaid diagrams** (light +
+  dark init blocks, accent classes, optional card-shadow CSS). Use for any
+  diagram in a sibling app's docs (see below).
 
 ## The tokens (summary — `colors_and_type.css` is authoritative)
 
@@ -107,6 +110,18 @@ the same family.
 Lowercase, terse, numbers-do-the-talking. No marketing voice, no exclamation
 marks, no emoji. Empty states get at most one quiet line. Each app picks a
 flavor (e.g. a localized tongue, archival, dry) but the restraint is shared.
+
+## Mermaid diagrams
+
+Any Mermaid diagram in a sibling app's docs uses the family theme:
+`assets/mermaid-halo.md` maps the tokens onto Mermaid's `base` theme. Nodes are
+cards, subgraphs are `--halo-bg-light` panels, edges are quiet
+`--halo-text-muted` grey, and the accent is applied by hand (the
+`halo-accent` / `halo-live` classes) to the one thing that's alive — the theme
+never sprays it. Paste the light init block into READMEs (the family default);
+apps that render diagrams client-side pick light/dark at
+`mermaid.initialize` time. Derived from `colors_and_type.css` — when a token
+moves there, move it in the Mermaid asset too.
 
 ## Two ways to apply
 
