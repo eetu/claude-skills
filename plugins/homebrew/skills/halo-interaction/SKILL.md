@@ -146,6 +146,15 @@ an eye button that lights up when the part is _hidden_ reads backwards.
 - Native `prompt()`/`confirm()` never — they block the page, break the type,
   and read as the browser interrupting.
 
+## App chrome
+
+- **Settings and help live in the header, rightmost** — a gear and a circled ?,
+  after the document verbs (Save is last of those). The status bar's right end
+  is for layout furniture (region toggles); the app's own two are not
+  furniture. Settings = the few app-level choices (theme auto/dark/light,
+  default auto); help = how the tool works, opening itself once on a first
+  visit and on ? thereafter.
+
 ## Feedback
 
 - A status bar reports outcomes ("saved car.json", "reverted", refusal
