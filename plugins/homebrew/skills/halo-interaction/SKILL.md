@@ -38,6 +38,10 @@ the browser menu; nothing else shows the browser's.**
   with "this part is borrowed — open X to change it" teaches the model.
 - **A menu names its subject** as a heading (the swatch's character, the part's
   path). Four verbs with no subject read as noise.
+- **Labels are verbs; hints are facts.** A hint earns its place only carrying a
+  size, a count, a character, or the reason an item is grey — never prose
+  re-explaining the label ("erase these cells", "an independent copy"). If the
+  label needs explaining, fix the label.
 - Menus close when the document changes under them, and when a mode opens.
 
 ## Keyboard
