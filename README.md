@@ -14,6 +14,7 @@ plugins/
   homebrew/                          self-hosted homebrew web apps
     skills/
       halo-design/                   shared visual identity (tokens, wordmark, glyph)
+      halo-interaction/              how the tools behave (menus, keys, undo, modes)
       sibling-app/                   Rust(axum)+React app bootstrap + raspi deploy wiring
 ```
 
