@@ -1,13 +1,14 @@
 ---
 name: no-iteration-narration
-description: Ban the iteration journey from every written artifact — code comments, documentation, CHANGELOGs, PR descriptions, commit bodies, test names. Applies whenever writing or reviewing any of those. The default failure mode is narrating how the work went ("previously X, now Y", fixing bugs that never shipped, citing the earlier wrong approach); every artifact instead describes the final model as if it had always been the design. The narrow exception: a genuinely counter-intuitive trap worth a warning to the next person, recorded as a fact about the world, not as a story about the session.
+description: Language-agnostic enforcement for every project — ban the iteration journey from every written artifact in any language: code comments, documentation, CHANGELOGs, PR descriptions, commit bodies, test names. Applies whenever writing or reviewing any of those, in any codebase. The default failure mode is narrating how the work went ("previously X, now Y", fixing bugs that never shipped, citing the earlier wrong approach); every artifact instead describes the final model as if it had always been the design. The narrow exception: a genuinely counter-intuitive trap worth a warning to the next person, recorded as a fact about the world, not as a story about the session.
 user-invocable: true
 ---
 
-> **Scope.** [[ts-style]] states this rule for TS code comments. This skill is
-> the general case: it governs **every prose artifact** in any language —
-> comments, docs, README, CHANGELOG, PR/MR descriptions, commit messages, test
-> names, memory files. When both are loaded, they agree.
+> **Scope.** Generic coding enforcement, like [[lint-format]]: it applies to
+> **every prose artifact in every language and every repo** — comments, docs,
+> README, CHANGELOG, PR/MR descriptions, commit messages, test names, memory
+> files. Language skills (e.g. [[ts-style]]) restate it for their territory;
+> this skill is the rule.
 
 # no-iteration-narration
 
@@ -34,7 +35,7 @@ is concerned. It was a random draft choice; fixing it erased it.
 - **Code comments** — a constraint, an invariant, a non-obvious why. No
   "previously", no "now", no "the old approach", no reviewer-directed notes
   ("this fixes…", "changed to match…"). If the code can say it, delete the
-  comment. ([[ts-style]] § Comments has the TS-specific detail.)
+  comment.
 - **Documentation / README** — documents the product as it stands. Never
   "X now does Y" (implies a before that readers may never have seen), never a
   compatibility note for a state that was never released.
