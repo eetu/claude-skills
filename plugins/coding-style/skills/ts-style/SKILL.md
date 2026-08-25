@@ -1,6 +1,6 @@
 ---
 name: ts-style
-description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/eslint-config (npm package). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, comment discipline (the final model, never the iteration journey), and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
+description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/eslint-config (npm package). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, comment discipline (the final model, never the iteration journey), shipped-prose density (changelogs/commits/PRs: fewer words, same information), and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
 user-invocable: true
 ---
 
@@ -122,6 +122,24 @@ the code got here, so:
   stale comment is worse than none — and every comment written for the person
   watching the change (rather than the person reading the file) is noise the
   moment it merges.
+
+## Shipped prose: changelogs, commit bodies, PR text
+
+Same discipline, different surface. The goal is **fewer words, same
+information** — these are scanned, not read.
+
+- **Changelog entries are `**name** — facts`, one to three lines each**: API
+  names, behaviours, defaults, budget/size changes. No design narrative, no
+  metaphors, no justification stories — the _why it had to work this way_
+  lives in code comments and internal docs, not the changelog.
+- **Verbosity compounds across releases.** Each new entry mimics the tone of
+  the one above it, so drift only ever ratchets up. Calibrate a new entry
+  against the repo's _earliest_ releases, not the latest.
+- **One-line release intro.** A release gets a single headline sentence, not a
+  paragraph restating the bullets below it.
+- Commit bodies and PR descriptions state what changed and its consequence.
+  Rationale earns a sentence when a reviewer needs it to judge the diff —
+  never a narrative arc.
 
 ## Reference
 
