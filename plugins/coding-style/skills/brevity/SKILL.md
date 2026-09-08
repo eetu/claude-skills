@@ -1,6 +1,6 @@
 ---
 name: brevity
-description: Language-agnostic rule for every project — a comment, doc line, commit message or PR description must tell the reader something the code does not, or it does not get written. Applies whenever writing or reviewing any prose artifact in any repo. Bans the kinds that carry no information: documenting an absence ("there is no write route"), padding a real point with elaboration, and tests that assert an absence. Also records which anti-verbosity instructions are model-version workarounds, to be deleted rather than accumulated.
+description: Language-agnostic rule for every project — a comment, doc line, commit message, PR description or changelog entry must tell the reader something the code does not, or it does not get written. Applies whenever writing or reviewing any prose artifact in any repo. Bans the kinds that carry no information: documenting an absence ("there is no write route"), padding a real point with elaboration, and tests that assert an absence. Covers shipped-prose density (changelogs/commits/PRs: fewer words, same information, and the ratchet that makes each release wordier than the last). Also records which anti-verbosity instructions are model-version workarounds, to be deleted rather than accumulated.
 user-invocable: true
 ---
 
@@ -55,11 +55,22 @@ zero-information line produces a shorter zero-information line.
 - A **cross-reference** the type system cannot express: which module must change
   in step, which invariant a caller is relied on to have checked.
 
-## Commits and PRs
+## Shipped prose: commits, PRs, changelogs
 
-State what changed, plus the one or two things a reviewer cannot infer from the
-diff — a breaking change, a decision with a live alternative, a measured result.
-Not a narrative, not a tour of the files, not a restatement of the diffstat.
+Scanned, not read. The goal is **fewer words, same information**.
+
+- **Commit bodies and PR descriptions** state what changed, plus the one or two
+  things a reviewer cannot infer from the diff — a breaking change, a decision
+  with a live alternative, a measured result. Not a narrative, not a tour of the
+  files, not a restatement of the diffstat.
+- **Changelog entries are `**name** — facts`, one to three lines each**: API
+  names, behaviours, defaults, budget or size changes. The _why it had to work
+  this way_ lives in code comments and internal docs, not the changelog.
+- **One-line release intro.** A release gets a single headline sentence, not a
+  paragraph restating the bullets below it.
+- **Verbosity compounds across releases.** Each new entry mimics the tone of the
+  one above it, so drift only ever ratchets up. Calibrate a new entry against
+  the repo's _earliest_ releases, not the latest.
 
 A verification result is information: keep the numbers, drop the adjectives.
 
