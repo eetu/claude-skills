@@ -159,6 +159,20 @@ the browser menu; nothing else shows the browser's.**
   touch aborts the tool gesture rather than finishing it under a pinch.
 - ⌥-hold is the quick-pick (eyedropper) over any tool — ⌥, not ⌘, which the
   browser owns.
+- **A momentary tool is BORROWED, not switched to.** Switching runs the outgoing
+  tool's cleanup; borrowing suspends it and hands it back. nib armed its
+  eyedropper with a tool switch, and the pen's cleanup is _finish the path_ — so
+  reaching for a colour part-way through drawing ended the line you were
+  colouring, then left you on the select tool. One field (the host) and two verbs
+  (borrow / release). Not a state machine: there are no illegal transitions here,
+  only a distinction that wasn't drawn, and a machine would be ceremony over one
+  field.
+  - **The UI describes the HOST, not the interloper.** The rail keeps the pen
+    lit, the options panel keeps editing the pen's settings — which is the whole
+    reason the tool was borrowed. A borrowed interlude is not a change of
+    subject.
+  - **Escape releases it, above the host's own Escape rung.** Otherwise the
+    escape you meant for the interlude cancels the work underneath it.
 - Capture the pointer on press (in a try — synthetic events throw), so a stroke
   that leaves the element still ends on it.
 - Double-click is a shortcut to the _obvious_ deeper action (open the picker on
@@ -183,6 +197,22 @@ the browser menu; nothing else shows the browser's.**
   can be lost. Cues that cry wolf teach users to ignore cues.
 - Opening another document ends every mode and float. A mode holding a stale
   source will replace the new document with a transform of the old one.
+
+## Aids
+
+A live aid (a snap marker, a rubber band, a loupe) shows what the action _would
+do_ before it's done. Two rules:
+
+- **Only while the thing is armed.** An aid that's always on is furniture, and
+  furniture is ignored.
+- **Say it in the app's own terms — don't import an aid whose metaphor your data
+  can't honour.** An eyedropper conventionally gets a pixel magnifier, and in dab
+  that's exactly right: it samples pixels, so magnifying them shows more of the
+  truth. nib samples the _model_, so a magnifier would show antialiased edge
+  colours the tool can never return — the closer you looked, the more it would
+  lie. What nib can say instead is strictly better, and only a vector editor can:
+  the exact value plus the **named shape** it comes from. Borrowed metaphors are
+  where an app stops being about its own material.
 
 ## Undo
 
