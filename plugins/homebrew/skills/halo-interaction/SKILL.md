@@ -22,7 +22,7 @@ The point of a family is that the second tool needs no learning. Layout is the
 first thing a person meets, so it is the first thing that should already be
 familiar.
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────┐
 │ header   identity · document verbs · … · ⚙ ?                 │
 ├──────────┬──────────────────────────────────┬───────┬────────┤
