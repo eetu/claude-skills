@@ -1,6 +1,6 @@
 ---
 name: halo-interaction
-description: The interaction discipline for eetu's homebrew web apps — the behavioural counterpart to halo-design's visual identity. Context-menu policy, keyboard map rules, mouse/gesture vocabulary, floating states, undo semantics, dialogs, status feedback, and what persists across reloads. Use when building any app with a working surface (canvas, list, tree, grid) — a new tool from scratch, or aligning an existing one (nib, dab). Distilled from building dab, where every rule here was first gotten wrong.
+description: The interaction discipline for eetu's homebrew web apps — the behavioural counterpart to halo-design's visual identity. Shell layout (which region holds what), control grammar for optional things, context-menu policy, keyboard map rules, mouse/gesture vocabulary, floating states, undo semantics, dialogs, status feedback, and what persists across reloads. Use when building any app with a working surface (canvas, list, tree, grid) — a new tool from scratch, or aligning an existing one (nib, dab). Distilled from building dab, where every rule here was first gotten wrong.
 user-invocable: true
 ---
 
@@ -15,6 +15,86 @@ halo-design says what an app looks like; this says what it does under the hand.
 It applies to any app with a working surface — an editor's canvas, a dashboard's
 list, a player's timeline. Examples cite `../dab` (pixel editor, the origin of
 most rules) and `../nib` (whose canvas gestures dab follows).
+
+## Shell layout — where things live
+
+The point of a family is that the second tool needs no learning. Layout is the
+first thing a person meets, so it is the first thing that should already be
+familiar.
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ header   identity · document verbs · … · ⚙ ?                 │
+├──────────┬──────────────────────────────────┬───────┬────────┤
+│ NAVIGATE │            SURFACE               │SUBJECT│ TOOLS  │
+│  (tabs)  │                                  │       │ (rail) │
+│          ├──────────────────────────────────┤       │        │
+│          │ DOCK — only if it wants width    │       │        │
+├──────────┴──────────────────────────────────┴───────┴────────┤
+│ status   outcomes · … · region toggles                       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+| region                           | answers                   | holds                                                      |
+| -------------------------------- | ------------------------- | ---------------------------------------------------------- |
+| **Navigate** (left)              | what exists?              | projects, layers/parts, files — **tabs** once there's 2+   |
+| **Surface** (centre)             | —                         | the canvas. It gets the space; everything else is a margin |
+| **Subject** (right)              | what am I working on?     | properties of the current subject                          |
+| **Tools** (rail, beside Subject) | what does the pointer do? | tool icons, grouped, dividers between groups               |
+| **Dock** (bottom, opt.)          | —                         | anything intrinsically horizontal — frames, a timeline     |
+| **Status** (footer)              | what just happened?       | outcomes, and the region toggles at its right end          |
+
+- **The Subject panel follows the SUBJECT, not the tool.** "Tool settings" is a
+  trap borrowed from apps whose tools all have settings: the most-used tool is
+  select/move, which has none, so the panel reads broken every time you press V.
+  Show the selection's properties; when a _create_ tool is armed with nothing
+  selected, show the defaults that tool is about to use. (nib's STYLE panel
+  already does exactly this — "style" ⇄ "new shape style".)
+- **Tools sit beside the panel that describes their output**, not across the
+  window from it. Adjacency is the entire benefit of pairing them; a rail on the
+  far side of the canvas from its options is two unrelated strips.
+- **A tool whose button has a better home leaves the rail and keeps its
+  registration.** nib's eyedropper answers "what colour?", not "what am I
+  drawing?", so it lives on the paint rows — one per paint, which also says
+  which paint the sample lands in. Mark it in the tool table (`inRail: false`)
+  rather than deleting the entry: the registry, the shortcut map and the cursor
+  usually derive from that same table, and deleting unregisters the tool.
+- Related primitives (rect/line/polygon/star) collapse into one rail slot with a
+  flyout past two, so the rail stays scannable as they grow.
+- **Every region folds, and the fold state is a global pref**, not document
+  state. The toggles live at the status bar's right end — they're furniture, and
+  that is where every editor puts furniture.
+
+Divergence is normal in tools grown iteratively — dab keeps its inspector on the
+left, above the parts tree. Treat that as debt with a migration, not as a second
+valid arrangement, or the familiarity this whole skill is for never arrives.
+
+## One control per question
+
+An optional sub-object — a fill, a stroke, a shadow, a filter, an effect — asks
+up to three questions. Each gets its own control, and they are never merged:
+
+| question             | control                                        |
+| -------------------- | ---------------------------------------------- |
+| does it exist?       | a **switch**                                   |
+| what kind is it?     | a short list (`<select>`), only when it exists |
+| what are its params? | only the chosen kind's, nothing else on screen |
+
+Switching it off collapses the whole block — a shape with no stroke should not
+spend five rows saying so.
+
+nib had `none · solid · linear · radial` as one row of four chips per paint, and
+the merge cost it twice: "no fill" ended up with two separate controls a week
+apart (because `none` is not a _kind_ of paint, so it kept wanting a second
+home), and the panel showed eight chips before you reached a colour. A switch
+plus a list fixed both at once, and retired a control that had been added to
+patch the first symptom.
+
+**Switch ≠ active button.** `active` styling says a FEATURE is on (the grid is
+showing, the eyedropper is armed). A switch says a THING exists or doesn't. Two
+different questions, two different controls — and using the lit-button recipe for
+existence is how you end up unable to tell "stroke is selected" from "there is a
+stroke".
 
 ## Context menus — the 1.0 gate
 
@@ -79,6 +159,20 @@ the browser menu; nothing else shows the browser's.**
   touch aborts the tool gesture rather than finishing it under a pinch.
 - ⌥-hold is the quick-pick (eyedropper) over any tool — ⌥, not ⌘, which the
   browser owns.
+- **A momentary tool is BORROWED, not switched to.** Switching runs the outgoing
+  tool's cleanup; borrowing suspends it and hands it back. nib armed its
+  eyedropper with a tool switch, and the pen's cleanup is _finish the path_ — so
+  reaching for a colour part-way through drawing ended the line you were
+  colouring, then left you on the select tool. One field (the host) and two verbs
+  (borrow / release). Not a state machine: there are no illegal transitions here,
+  only a distinction that wasn't drawn, and a machine would be ceremony over one
+  field.
+  - **The UI describes the HOST, not the interloper.** The rail keeps the pen
+    lit, the options panel keeps editing the pen's settings — which is the whole
+    reason the tool was borrowed. A borrowed interlude is not a change of
+    subject.
+  - **Escape releases it, above the host's own Escape rung.** Otherwise the
+    escape you meant for the interlude cancels the work underneath it.
 - Capture the pointer on press (in a try — synthetic events throw), so a stroke
   that leaves the element still ends on it.
 - Double-click is a shortcut to the _obvious_ deeper action (open the picker on
@@ -103,6 +197,22 @@ the browser menu; nothing else shows the browser's.**
   can be lost. Cues that cry wolf teach users to ignore cues.
 - Opening another document ends every mode and float. A mode holding a stale
   source will replace the new document with a transform of the old one.
+
+## Aids
+
+A live aid (a snap marker, a rubber band, a loupe) shows what the action _would
+do_ before it's done. Two rules:
+
+- **Only while the thing is armed.** An aid that's always on is furniture, and
+  furniture is ignored.
+- **Say it in the app's own terms — don't import an aid whose metaphor your data
+  can't honour.** An eyedropper conventionally gets a pixel magnifier, and in dab
+  that's exactly right: it samples pixels, so magnifying them shows more of the
+  truth. nib samples the _model_, so a magnifier would show antialiased edge
+  colours the tool can never return — the closer you looked, the more it would
+  lie. What nib can say instead is strictly better, and only a vector editor can:
+  the exact value plus the **named shape** it comes from. Borrowed metaphors are
+  where an app stops being about its own material.
 
 ## Undo
 
@@ -131,6 +241,7 @@ One word, one meaning, everywhere it is said — canvas, tree rows, thumbnails:
 | marching ants (white)     | marquee — what operations apply to             |
 | accent ants + chip        | floating — selected AND not yet yours          |
 | hatch texture             | empty placeholder awaiting content             |
+| switch (on = accent)      | this thing exists — _not_ "this feature is on" |
 
 Never overload: dab's audit found "dashed" carrying six meanings and "selected"
 said five ways. Pick the recipe once, share the CSS. The active-toggle rule:
@@ -196,13 +307,16 @@ picture meaningful: a blank rectangle reads as a design decision.
 
 Audit in this order — it's the order users notice:
 
-1. Right-click coverage and the browser-menu suppression (the coin toss is the
+1. The region map — is Navigate left, Subject right, the rail beside Subject?
+   Layout is what a person meets first, and it is the cheapest thing to make
+   familiar.
+2. Right-click coverage and the browser-menu suppression (the coin toss is the
    loudest inconsistency).
-2. Escape/Enter in every dialog; keys leaking through veils.
-3. Keys that change meaning with invisible state.
-4. Undo entries per gesture (find the per-pointermove commits).
-5. Selection-state vocabulary across panels.
-6. What survives a reload, and whether a reload can be undone.
+3. Escape/Enter in every dialog; keys leaking through veils.
+4. Keys that change meaning with invisible state.
+5. Undo entries per gesture (find the per-pointermove commits).
+6. Selection-state vocabulary across panels.
+7. What survives a reload, and whether a reload can be undone.
 
-Fix by adopting the shared components (menu, Modal, IconButton, Panel) rather
+Fix by adopting the shared components (menu, Modal, IconButton, Panel, Switch) rather
 than patching each surface's copy — the copies are how it drifted apart.
