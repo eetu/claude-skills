@@ -205,6 +205,11 @@ test the installed shortcut on real hardware):
   `background` into that inset — so the bar meets the physical edge with its
   controls lifted above the home indicator (no visible dead strip). Landscape:
   add `env(safe-area-inset-left/right)` too.
+- **A multi-pane layout uses `.halo-panes`** (halo-design), not a bespoke set of
+  media queries: the app sets `data-showing` to one pane name, and the primitive
+  handles one-at-a-time, full width and the scrolling nav. It also carries the
+  rule a bespoke version forgets — **a hidden pane needs a control that brings it
+  back**, or opening a detail view is a dead end on a phone.
 
 ## Auto-reload on a new deploy (stale-tab guard)
 

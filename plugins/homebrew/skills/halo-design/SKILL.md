@@ -60,17 +60,18 @@ artifacts _or_ production code as appropriate.
 
 ## Wordmark
 
-`.halo-wordmark` is the canonical primitive (defined in `colors_and_type.css`)
-and every app renders through it: **Inter (`--halo-font-body`) 600, lowercase,
-`letter-spacing: -0.04em`, `white-space: nowrap`**, the app name in
-`--halo-text-main` followed by **exactly one** accent element — a trailing period
-`<span class="accent">.</span>` in `--halo-accent`.
+`.halo-wordmark` is the canonical primitive and every app renders through it.
+**The type, the glyph and the spacing all live in `colors_and_type.css`, which
+pins the exact markup — follow it rather than rebuilding the layout**, which is
+how a wordmark ends up reading `nib .`. An app supplies the glyph, the riff text,
+and the breakpoint where the riff collapses; nothing else.
 
 House convention: the full wordmark is a short, dry pop-culture riff ending in
-the app's own name (the riff is a muted weight-400 prefix in `--halo-text-muted`),
-and it **collapses to the bare app name** (+ accent dot) below the mobile
-breakpoint. The brand reads in the same typeface as the app's numerals so brand
-and data feel like one system. Each app writes its own; keep it terse and lowercase.
+the app's own name, and it **collapses to the bare app name** (+ accent dot)
+below the mobile breakpoint. The name carries **exactly one** accent element — a
+trailing period in `--halo-accent`. The brand reads in the same typeface as the
+app's numerals so brand and data feel like one system. Each app writes its own;
+keep it terse and lowercase.
 
 **Sanctioned per-app overrides.** Two axes may deviate, but _only_ when the app's
 `<app>-design` skill documents the deviation with a reason — everything else
