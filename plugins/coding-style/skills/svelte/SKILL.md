@@ -58,6 +58,11 @@ hand-sort imports or argue layout — run `yarn lint:fix` / `yarn format:fix`.
 - **One component per `.svelte` file, PascalCase name** (the file _is_ the
   default export — no explicit export needed). Smaller helpers = `const` arrows
   inside `<script>`, per ts-style.
+- **A space that must survive is `&nbsp;`.** Svelte trims whitespace at element
+  boundaries, so the trailing space in `<span>the </span>name` is dropped and the
+  words run together. Wherever markup meets text — labels, wordmarks, inline
+  badges. Not a margin standing in for it: the space is content, and a margin
+  outlives `display: none` on the element that owned it.
 - **Events = callback props**, not dispatchers: accept `onSave`, `onclick` in
   `$props` and call them. Native handlers use the runes-era attribute form
   (`onclick={…}`, no colon).

@@ -114,12 +114,25 @@
 }
 
 /* ----------------------------------------------------------------------
- * Base — a shared touch nicety for the mobile-first family. Disables iOS
- * double-tap-to-zoom (which misfires on quick repeated taps, e.g. tapping dice /
- * counters / +− steppers) while keeping pinch-zoom and scrolling intact. Scoped
- * to tap targets on purpose — this file is tokens + primitives, not a full reset,
- * so apps still own their own base styles.
+ * Base — the rules every app in the family needs and none should restate.
+ * Still not a full reset: apps own their own base styles beyond these.
+ *
+ * `border-box` because the default breaks layouts silently rather than
+ * visibly: with `content-box` a declared width sizes the CONTENT and padding
+ * is added outside it, so `width: 100%` plus any padding overflows its parent
+ * by exactly that padding. It surfaces first on a phone, where a full-width
+ * pane runs off the right edge.
+ *
+ * `touch-action` disables iOS double-tap-to-zoom, which misfires on quick
+ * repeated taps (dice, counters, +− steppers), while leaving pinch-zoom and
+ * scrolling intact. Scoped to tap targets on purpose.
  * -------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 button,
 [role="button"],

@@ -34,6 +34,8 @@ url = "2"
 hex = "0.4"
 dotenvy = "0.15"
 mime_guess = "2"
+sha2 = "0.11"     # CSP: hashes for the SPA shell's inline scripts
+base64 = "0.23"
 rusqlite = { version = "0.40", features = ["bundled"] }   # omit if stateless
 # openidconnect = "4"   # only if the app does its own OIDC (usually not —
 #                       # it sits behind oauth2-proxy; see the auth extractor)

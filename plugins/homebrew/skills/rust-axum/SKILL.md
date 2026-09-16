@@ -91,7 +91,8 @@ axum-extra (`cookie`,`cookie-signed`,`typed-header`); tokio (`full`); tower-http
 (`fs`,`set-header`,`trace`,`cors`); reqwest (`json`,`rustls-tls`,
 `default-features=false`); serde/serde_json; thiserror; anyhow; tracing +
 tracing-subscriber (`env-filter`); chrono; uuid (`v4`); url; hex; dotenvy;
-mime_guess (the `serve_spa` handler uses it); rusqlite (`bundled`); openidconnect
+mime_guess (the `serve_spa` handler uses it); sha2 + base64 (the CSP's inline
+script hashes); rusqlite (`bundled`); openidconnect
 (only if the app does its own OIDC — usually not, it's behind oauth2-proxy).
 dev-deps: `tempfile`, `wiremock`. (`Cargo.toml.example` ships this table.)
 
@@ -140,14 +141,24 @@ Svelte, no difference here. (The full handler + `csp_layer()` ship in
 ## Security (house patterns — apply every time)
 
 - **CSP in-code** via `tower_http::set_header::SetResponseHeaderLayer` on all
-  responses: `default-src 'self'; script-src 'self'; style-src 'self'
-'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:
+  responses: `default-src 'self'; script-src 'self' <inline hashes>; style-src
+'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data:
 https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self';
 manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none';
 form-action 'self'`. (`manifest-src 'self'` so the SPA's webmanifest loads —
   spa-frontend ships one.) Extend `img-src`/`media-src` per app. **HSTS /
   X-Frame-Options / X-Content-Type-Options are Traefik's job**, not the
-  binary's.
+  binary's. Two details the shipped `csp_layer` exists to get right:
+  - **`script-src` carries a sha256 per inline script, computed at startup from
+    the served `index.html`.** SvelteKit boots from an inline `<script>` whose
+    body holds a per-build random identifier, so the hash cannot be a literal —
+    and under a bare `script-src 'self'` the browser refuses it and **the SPA
+    never starts**. The document and every bundle still return 200, so status
+    codes, curl and an integration suite all look healthy; only a browser shows
+    it. Never reach for `'unsafe-inline'` instead.
+  - **Add the layer after `.fallback`, not before.** `Router::layer` wraps only
+    what is already in the router, so layering first leaves the SPA document —
+    the one response a CSP protects — with no header at all.
 - **Sessions** (only if the app has its own login): `axum-extra` `SignedCookieJar`
   keyed by `SESSION_KEY` (≥64 hex bytes). Cookie `http_only`, `same_site=Lax`,
   `secure` in prod, `path=/`. Tiny payload (`sub|email`). Refuse to boot in prod

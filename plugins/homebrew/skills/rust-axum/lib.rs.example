@@ -7,6 +7,7 @@
 //! player needs `'wasm-unsafe-eval'` + `worker-src blob:`); the CSP here is the
 //! canonical baseline — extend `img-src`/`media-src`/`connect-src` per app.
 
+use std::path::Path;
 use std::sync::Arc;
 
 use axum::extract::{FromRequestParts, State};
@@ -61,12 +62,16 @@ pub async fn run_server() -> anyhow::Result<()> {
 }
 
 fn router(state: AppState) -> Router {
+    let csp = csp_layer(&state.cfg.static_dir);
     Router::new()
         // Unauthenticated liveness — gatus probes this; keep it auth-free.
         .route("/status", get(status))
         // .route("/api/things", get(api_things))   // gated; takes `_: Auth`
-        .layer(csp_layer())
         .fallback(get(serve_spa)) // NOT fallback_service(ServeDir…) — see below
+        // AFTER `.fallback`, not before: `Router::layer` only wraps what is
+        // already in the router, so layering first leaves the SPA document —
+        // the one response a CSP actually protects — without the header.
+        .layer(csp)
         .with_state(state)
 }
 
@@ -112,9 +117,24 @@ async fn serve_spa(State(state): State<AppState>, uri: Uri) -> Response {
 /// `manifest-src` for the SPA's webmanifest. Extend `img-src`/`media-src`/
 /// `connect-src` per app. HSTS / X-Frame-Options / X-Content-Type-Options are
 /// Traefik's job, not the binary's.
-fn csp_layer() -> SetResponseHeaderLayer<HeaderValue> {
-    const CSP: &str = "default-src 'self'; \
-         script-src 'self'; \
+///
+/// **The hashes are not optional.** SvelteKit boots the app from an INLINE
+/// `<script>` whose body carries a per-build random identifier
+/// (`__sveltekit_<rand>`), so no hash can be written down here. Under a bare
+/// `script-src 'self'` the browser refuses it and the SPA never starts — while
+/// the document and every bundle still return 200, so curl, the status codes and
+/// an integration suite all look healthy. Only a browser shows it. Hashing what
+/// the served index.html actually contains keeps 'unsafe-inline' out and needs
+/// no attention after a rebuild. Needs `sha2` + `base64`.
+fn csp_layer(static_dir: &Path) -> SetResponseHeaderLayer<HeaderValue> {
+    let hashes: String = inline_script_hashes(static_dir)
+        .into_iter()
+        .map(|hash| format!(" '{hash}'"))
+        .collect();
+
+    let csp = format!(
+        "default-src 'self'; \
+         script-src 'self'{hashes}; \
          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
          font-src 'self' data: https://fonts.gstatic.com; \
          img-src 'self' data: blob:; \
@@ -123,10 +143,62 @@ fn csp_layer() -> SetResponseHeaderLayer<HeaderValue> {
          frame-ancestors 'none'; \
          base-uri 'self'; \
          object-src 'none'; \
-         form-action 'self'";
-    SetResponseHeaderLayer::if_not_present(
-        header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static(CSP),
+         form-action 'self'"
+    );
+
+    let value = HeaderValue::from_str(&csp).unwrap_or_else(|_| {
+        tracing::error!("computed CSP was not a valid header value; falling back");
+        HeaderValue::from_static("default-src 'self'")
+    });
+    SetResponseHeaderLayer::if_not_present(header::CONTENT_SECURITY_POLICY, value)
+}
+
+/// `sha256-…` for every inline `<script>` in the served `index.html`.
+fn inline_script_hashes(static_dir: &Path) -> Vec<String> {
+    let Ok(html) = std::fs::read_to_string(static_dir.join("index.html")) else {
+        // No shell to serve, so nothing to allow. The API still answers.
+        return Vec::new();
+    };
+    inline_scripts(&html)
+        .iter()
+        .map(|body| sha256_base64(body))
+        .collect()
+}
+
+/// Bodies of `<script>` elements with no `src` — one that has a `src` loads from
+/// the origin and is already covered by 'self'.
+fn inline_scripts(html: &str) -> Vec<&str> {
+    let lower = html.to_ascii_lowercase();
+    let mut out = Vec::new();
+    let mut cursor = 0usize;
+
+    while let Some(found) = lower[cursor..].find("<script") {
+        let open = cursor + found;
+        let Some(rel) = lower[open..].find('>') else {
+            break;
+        };
+        let body_start = open + rel + 1;
+        let tag = &lower[open..body_start];
+        let Some(rel_end) = lower[body_start..].find("</script") else {
+            break;
+        };
+        let body_end = body_start + rel_end;
+        if !tag.contains(" src=") {
+            out.push(&html[body_start..body_end]);
+        }
+        cursor = body_end;
+    }
+    out
+}
+
+fn sha256_base64(body: &str) -> String {
+    use base64::Engine as _;
+    use sha2::{Digest, Sha256};
+
+    let digest = Sha256::digest(body.as_bytes());
+    format!(
+        "sha256-{}",
+        base64::engine::general_purpose::STANDARD.encode(digest)
     )
 }
 
