@@ -16,6 +16,9 @@ plugins/
       halo-design/                   shared visual identity (tokens, wordmark, glyph)
       halo-interaction/              how the tools behave (menus, keys, undo, modes)
       sibling-app/                   Rust(axum)+React app bootstrap + raspi deploy wiring
+  diagnosis/                         investigating faults without inventing causes
+    skills/
+      root-cause/                    hypotheses, falsifying tests, "cause unknown" as an ending
 ```
 
 New domains get their own plugin beside `homebrew/` (e.g. `raspi-iac`,
