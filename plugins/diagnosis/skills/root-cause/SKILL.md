@@ -27,6 +27,7 @@ worn. Until both halves are shown, it is a candidate. Say so in those words.
    become visible the moment two facts sit in adjacent rows.
 2. **List every hypothesis that fits the facts.** Plural is the point. One
    hypothesis is not an investigation, it is a conclusion looking for support.
+   Hunches belong on this list — labelled as hunches, ranked with the rest.
 3. **For each, name the measurement that would _reject_ it.** If you cannot
    name one, the hypothesis is not yet a hypothesis.
 4. **Run the rejecting test, not the confirming one.** Confirmation is cheap and
@@ -112,6 +113,33 @@ discipline that applies to hypotheses applies here:
 - **Prefer the reversible form while testing.** A runtime property, a temporary
   override, a copy — anything that a restart undoes lets a wrong guess cost
   minutes rather than a recovery.
+
+## A hunch is a hypothesis, and trialing one is a legitimate test
+
+None of this bans intuition. A hunch is where hypotheses come from, and
+suppressing it produces a different failure — an investigation that measures
+everything and suspects nothing. The rule is not "do not guess", it is **label
+the guess and let the result count**.
+
+Trialing an uncertain fix is a real test, often the cheapest one available, when
+three things hold: it is reversible, it moves one variable, and **the outcome is
+read as evidence either way**. A trial that works is a hypothesis promoted; a
+trial that changes nothing is a hypothesis rejected, and that is a result worth
+having rather than a wasted afternoon. What is not allowed is the trial whose
+negative outcome gets quietly dropped while the hunch survives intact.
+
+**Read before you touch, when the answer is already written down.** This is where
+cost asymmetry does the work: documentation and a search cost minutes, and a
+trial on a physical system can cost a recovery. So the order is
+cheapest-and-most-conclusive first, and a documented behaviour beats an
+experiment that rediscovers it.
+
+The test for whether a lookup was skipped too readily: if the failure mode of the
+change is severe and the documentation is one search away, doing the experiment
+first is not boldness, it is paying with the expensive currency when the cheap
+one was in your pocket. A setting whose documented effect is "switches which
+firmware blob loads" is not a setting to discover empirically on a machine with
+no console.
 
 ## Restoring service destroys the evidence
 
