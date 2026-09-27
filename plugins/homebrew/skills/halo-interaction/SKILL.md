@@ -251,9 +251,20 @@ an eye button that lights up when the part is _hidden_ reads backwards.
 ## Dialogs
 
 - **One Modal component** owns veil, focus (first input, else first button),
-  Escape=cancel, Enter=confirm-with-button-guard, geometry. Every dialog is
-  built on it; hand-rolled veils drift within weeks (dab grew three geometries
-  and four copies of the button CSS).
+  Escape=cancel, and Enter=confirm-with-button-guard. Every dialog is built on
+  it; hand-rolled veils drift within weeks (dab grew three geometries and four
+  copies of the button CSS).
+- **A dialog is three regions — header, body, footer — and only the body
+  scrolls.** Header and footer hold their ground; the body takes what is left.
+  Scroll the whole panel instead and the title bar leaves with the content,
+  taking the close button with it, so a long dialog becomes one that can only be
+  dismissed by knowing about Escape. A footer is optional, but once there are
+  buttons they belong in it rather than at the end of the scrolling content, for
+  exactly the same reason. `.halo-dialog` in `halo-design` is that geometry.
+- **Bind Escape at the window, not on the veil.** A `keydown` on the backdrop
+  element only fires while that element has focus, which it never has once a
+  click has landed inside the panel — so the dialog appears to handle Escape and
+  does not. (Both of rosso's hand-rolled dialogs shipped this.)
 - Dialogs are for questions that block; a bar-over-the-surface is for modes
   that preview; inline editing is for renames. Don't put a preview in a dialog.
 - Confirm only what undo cannot take back (Revert, Discard, file deletion).
