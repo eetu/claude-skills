@@ -1,0 +1,5 @@
+{
+  "name": "diagnosis",
+  "description": "How to investigate a fault without inventing a cause: root-cause (hypotheses with named falsifying tests, Occam's razor as a ranking, coincidence as the default suspect, and 'cause unknown' as a legitimate ending). Future: postmortem, instrumentation.",
+  "author": { "name": "Eetu Sutinen" }
+}

@@ -16,6 +16,11 @@
       "description": "House patterns for self-hosted homebrew web apps: shared look (halo-design), frontend (spa-frontend), backend (rust-axum), and the assembly+deploy orchestrator (sibling-app)."
     },
     {
+      "name": "diagnosis",
+      "source": "./plugins/diagnosis",
+      "description": "How to investigate a fault without inventing a cause: root-cause (every explanation is a hypothesis with a named falsifying test, Occam's razor ranks rather than decides, coincidence is the default suspect, and \"cause unknown\" is a legitimate ending)."
+    },
+    {
       "name": "creative-coding",
       "source": "./plugins/creative-coding",
       "description": "Generative / canvas visual effects independent of any app stack: ascii-artist (animated ASCII art — masks, density ramps, particle systems, fbm-noise fields, pseudo-3D, performance rules, single-file delivery)."
