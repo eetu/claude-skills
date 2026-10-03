@@ -204,6 +204,12 @@ const ms = (performance.now() - t0) / 200;
   both, back to back.
 - Put the result in the commit message ("frames still 3.6–4.1 ms"): the cost of
   a feature is information a reviewer cannot get from the diff.
+- **Pin every input the harness draws with.** Build the state in the harness
+  (`{ seed, since, after: true, … }`) rather than borrowing the store's live
+  one. **Trap:** a harness that spread the store's current state over its own
+  timed whatever screen the store happened to be on, and reported 0.4 ms for a
+  4 ms scene. A number that drops tenfold without a reason is a harness bug
+  until shown otherwise.
 
 ## The gate
 

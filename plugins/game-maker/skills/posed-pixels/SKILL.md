@@ -207,6 +207,18 @@ each turned pixel into it when painting the rubble layer.
   `game-maker:game-workbench`.
 - The bake costs far more than the pose. If a profile shows bakes inside the
   frame loop, a key isn't quantized.
+- **Big paintings: pose into one shared sheet.** Once trees grow to fill the
+  scene, the per-painting upload and blit dominate, not the pixel loop. Give
+  the paintings of one depth band a single scene-sized buffer: each poses its
+  pixels straight into it at scene coordinates, in draw order (later ones
+  overwrite, as separate blits would), widening a dirty rectangle. Then one
+  `putImageData` and one `drawImage` of just that rectangle. Clear only last
+  frame's rectangle. Six large trees went from 4.3 to 2.1 ms this way. A
+  painting that is `still` (a lying log) keeps its own canvas and cache.
+- **Offscreen layers at scene size, not device size.** Everything here lands on
+  whole scene pixels, so a layer for clipping or shading (the wall's gaps, the
+  night) can be `SCENE_W × SCENE_H` and drawn up through the context's transform.
+  At 3× that is nine times fewer pixels per pass; on a large display, more.
 
 ## Related
 

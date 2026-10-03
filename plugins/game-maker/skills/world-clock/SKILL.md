@@ -86,6 +86,11 @@ Compute _when_ things happen once, up front, from the seed; render by asking
   - **Stagger the first generation** by a seeded order (one death per spring).
     Independent draws cluster, and three trees falling in one minute reads as a
     bug.
+- **Ages on their own clock.** A thing's age need not run at the world's pace:
+  a wood can grow in five years in a few minutes, then age a year per world
+  year. Write the mapping and its inverse once (`ageAt(life, t)`,
+  `timeAt(life, age)`): deaths, shed branches and fruit seasons are then
+  scheduled in ages and placed in time by the inverse.
 - **Spreading fields** (moss over a floor): when moss reaches each cell is
   `reach(x, y) = 6 + min distance to sources / speed + hash * 8`, computed once.
   Draw a cell iff `reach <= since`; growth is a lookup, not a flood fill per

@@ -1,112 +1,122 @@
 ---
 name: procedural-plants
-description: Grow plants from a seed for a small pixel-art canvas world — trees as plans of limbs, clumps, fruit and a perch, one generator per species grown the way that species grows; shrubs, climbers and grass as stems with leaves; moss spreading over the floor and over whatever lies on it; growth, the season's look (leaves turning one by one, blossom, berries, snow), the dead look, and a life cycle where trees die, fall, rot and are replaced. Use when adding vegetation to a canvas scene or game, a new tree or shrub species, seasonal dressing, a plant that grows over time, a forest that renews itself, or moss and ground cover.
+description: Grow plants from a seed for a small pixel-art canvas world — trees whose whole life (stems gaining height and girth, branches sprouting each year, the crown rising, dead branches dropping) is laid down once and read at any age into a plan of limbs, clumps, fruit and a perch; species as tables of numbers; shrubs, climbers and grass as stems with leaves; moss spreading over the floor and whatever lies on it; the season's look, the dead look, and a life cycle where trees die, fall, rot and are replaced. Use when adding vegetation to a canvas scene or game, a new tree or shrub species, a tree that keeps growing, a forest that renews itself, seasonal dressing, or moss and ground cover.
 user-invocable: true
 ---
 
 > **Priors, not rails.** The species, numbers and palettes below are one
-> northern wood's. The parts worth keeping are the split (a plan from the seed
-> once, a painter that takes growth and the season) and the habits that keep a
-> plant reading as itself at 1 px per leaf.
+> northern wood's. The parts worth keeping are the split (a life laid down once
+> from the seed, read at an age into a plan; a painter that takes the plan and
+> the season) and the habits that keep a plant reading as itself at 1 px a leaf.
 
 # procedural-plants
 
-A plant is two things. Its **plan** is the full-grown geometry in scene pixels,
-made once from a seed and cached. Its **painter** is a pure function of
-`(plan, growth, look)` that emits whole pixels. The plan never changes as the
-plant grows or the year turns; only the painter's arguments do. Motion lives in
-`game-maker:wind-and-springs`, per-frame posing in `game-maker:posed-pixels`,
-the stamps (`rect`, `clump`, `cap`) in `game-maker:pixel-brushes`.
+A tree is two things. Its **life** is laid down once from a seed and cached:
+every stem and branch it will ever grow, when each sprouts, how fast it grows,
+when it dies and when it drops. Read at an **age** it gives a **plan**, plain
+geometry in scene pixels. The **painter** is a pure function of `(plan, look)`
+that emits whole pixels. Motion lives in `game-maker:wind-and-springs`, posing in
+`game-maker:posed-pixels`, the stamps (`rect`, `clump`, `cap`) in
+`game-maker:pixel-brushes`. Soft plants use a simpler model (below).
 
-## A tree is a plan, not a sprite
+## Scale first, then let them grow out of the picture
+
+Fix the pixels to the metre from something everyone knows the size of: a desk
+0.8 m tall at 32 px makes 40 px/m. Then trees get their real heights: a birch
+grows toward 20 m (800 px), a spruce 25 m, an apple 5 m. In a scene a few
+metres tall, a grown tree's crown leaves the top, and that is right: you see
+trunks, lower branches and the next generation. **Trap: shrinking a tree to fit
+the scene** makes it the size of the furniture and stops it ever growing.
+
+## A plan, read off a life
 
 ```ts
-type Limb = { a: Pt; b: Pt; w: number; at: number }; // wood, there once growth ≥ at
-type Clump = { x: number; y: number; r: number; at: number }; // leaves, a bough, a tuft
+type Limb = { a: Pt; b: Pt; w: number; dead?: number }; // dead 0..1 once its branch died
 type Plan = {
   species: Species;
   root: Pt;
   height: number;
   limbs: Limb[];
-  clumps: Clump[];
-  fruit: Pt[]; // where apples / cherries / plums hang
-  perch: Pt; // a fork a bird can sit on
+  clumps: Clump[]; // leaves, a bough, a tuft: { x, y, r }
+  fruit: Pt[];
+  perch: Pt | null; // a branch a bird can sit on, if one is in view
+  parents: { piece: number; t: number }[]; // what each piece hangs on (-1 the root)
+  clumpOn: number[]; // the piece each clump hangs on
+  ids: number[]; // stable per piece across ages
 };
 ```
 
-- **Pieces carry `at`, the growth at which they appear.** Generators assign it
-  from the base out: trunk 0, main limbs ~0.12, shoots and twigs later, leaves
-  last. One number drives both how big the tree is and which parts it has yet.
-- **Parents before children in `limbs`.** The rig that makes a tree sway
-  (`game-maker:wind-and-springs`) finds each piece's parent among the pieces
-  laid before it. Any generator that keeps that order gets motion for free.
-- **Anchors live in the plan.** The perch is the fork nearest three fifths of the
-  way up; fruit hangs under outer clumps (`at > 0.5`). Creatures and fruit ride
-  the posed tree through these anchors, so no species needs special cases.
-- **One seeded stream per plant** (mulberry32 `random(seed)`), with the seed
-  hashed from the world seed and the slot. Trap: inserting one `rand()` call in
-  a generator reshapes every later tree of that kind for every seed. Take new
-  randomness from `hash(...)` instead, or add the call last.
+- **Parents, hangs and ids come with the plan.** The sway rig takes them as given
+  (no nearest-piece search), and a stable id keeps each piece's own spring and
+  each clump's flutter phase when a new age adds pieces in between.
+- **Read at steps and keep only a few.** Quantise the age (e.g. 1/24 year, about
+  a pixel of growth) and keep the last few plans per life, not all of them:
+  six trees × 24 steps a year × decades is a memory leak.
+- **Leave out what can never show.** Skip pieces with both ends above the scene
+  (with a margin for sway) and the axes that start there. A tree going over
+  needs its whole height (it falls into view), so the reader takes a flag for
+  that.
 
-## One generator per species, grown the way it grows
+## A species is a table of numbers
 
-Everything is built from one helper: a limb from a point at an angle off the
-vertical, in pieces that turn by `bend` (an arch out and down; negative curls
-up) plus `wander`, with a width per piece. A species is a handful of numbers on
-one of three shapes:
-
-| Shape        | How it grows                                                                               | Species                                                     |
-| ------------ | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| bespoke      | written out                                                                                | birch (hanging twigs), spruce (whorls), pine (crown on top) |
-| `scaffolded` | a trunk splits into main limbs fanned to `span`, leafy shoots off them                     | apple, oak, cherry, plum: numbers only                      |
-| `forked`     | forks recursively, each pulled back up by `lift` × its lean: an oval crown, not a flat one | rowan (often multi-stem), maple                             |
-
-<!-- prettier-ignore -->
-```ts
-// apple: short trunk, 4–5 gnarled scaffolds just above level, up at the ends
-const apple = scaffolded({ trunk: 0.2, limbs: [4, 5], span: 1.35, reach: 0.34,
-  rise: -0.05, wander: 0.45, leaf: 4.6, shoots: 0.8 });
-// oak: the same shape, thicker, wider and more crooked
-const oak = scaffolded({ trunk: 0.32, limbs: [3, 5], span: 1.4, reach: 0.4,
-  rise: 0.04, wander: 0.7, leaf: 6, shoots: 0.85 });
-```
+| Habit                       | What it sets                                                          |
+| --------------------------- | --------------------------------------------------------------------- |
+| `tall`, `at5`               | the height it grows toward, and at five years                         |
+| `multi`, `forkAt`, `forks`  | stems from the ground; when (if ever) the leader forks, into how many |
+| `whorl`, `perYear`          | branches in a whorl at each year's node, or alternate along it        |
+| `angle` [low, top], `bend`  | lean off the stem low and high in the crown; droop or rise            |
+| `reach`, `rate`             | how long a branch gets and how fast                                   |
+| `twig`, `leaf`, `outer`     | twig spacing and curl; leaf clump size; the outer share in leaf       |
+| `girth`                     | trunk width per (years of wood)^0.6                                   |
+| `crown`, `crownAge`, `keep` | the live crown's floor; dead branches' hold time                      |
+| `lives`                     | years                                                                 |
 
 What sells a species at this size is one or two traits, not botany. Birch has a
-white stem with dark marks and twigs that turn down and hang. Spruce has level
+white stem with dark marks and twigs that curl down and hang. Spruce has level
 whorls, widest at the bottom, laid bottom up so each layer's tips fall over the
-one below. Pine is a crooked bare stem with a few dead stubs and plates of
-needles high up. Oak has a dark, furrowed trunk, and its dead leaves stay into
-winter.
+one below. Pine is a crooked bare stem with stubs and plates of needles high up.
+Oak has a dark, furrowed trunk, and its dead leaves stay into winter.
 
-**Fit by shrinking the whole tree.** After generating, measure the bounds and
-scale every point about the root by
-`k = min(1, room above, room left, room right)`. A crown clipped by the scene's
-edge reads as a bug. A squashed crown stops looking like its species. A smaller
-tree is still the right tree. Test it: every point stays inside the scene for
-dozens of seeds, roots at both edges and the middle, and a height taller than
-the scene.
+## Laying down a life
 
-## Growth
+- **Height** by Chapman–Richards, `H(A) = tall·(1 − e^(−kA))^1.5`, with `k`
+  solved from the height at five: `k = −ln(1 − (at5/tall)^(2/3)) / 5`. Fast
+  young, slowing with age, never past `tall`.
+- **Stems.** Excurrent kinds keep one leader. Kinds that spread fork it at their
+  fork age: the trunk stops there and two to five stems carry the height on,
+  leaning out and turning back up toward the light. Some kinds clump from the
+  ground.
+- **Branches, year by year**, off every stem's new growth: a whorl at the
+  year's node, or a few alternating along the year's shoot. Several stems share
+  the light, so each takes `perYear / √stems`.
+- **Lay every path by arc length.** A path is points every few px along
+  `θ(s) = θ0 + bend·s + wander·noise(id, s)`, made once to the longest it could
+  grow; the current length takes a prefix. So growing only lengthens: no piece
+  that has grown ever moves. A branch stays where it sprouted. **Trap:** noise
+  keyed by the current length makes a whole branch wriggle at every age step.
+- **Reach** saturates, `L(a) = cap·(1 − e^(−rate·a))`. A broadleaf's low branches,
+  in the shade of the rest, get a shorter cap; a conifer's lowest are its longest.
+- **Girth** comes from the age of the wood: width at height `z` is
+  `girth·(A − ageAtHeight(z))^0.6`. The foot is thickest, the leader's tip 1 px,
+  and nothing is stored.
+- **The crown rises.** The live crown's share falls from 1 toward its floor:
+  `CR(A) = crown + (1 − crown)·e^(−A/crownAge)`, and its base is `H·(1 − CR)`. A
+  branch dies when the base passes its node, or early, shaded out (a tenth or so,
+  at random). Dead, it stops growing, greys and loses its twigs one by one. It
+  drops after its kind's hold time: a pine's in a year or three, a spruce's after
+  a decade. Pine and spruce keep a short stub. Trees in a clearing keep a deeper
+  crown than in a stand; set the floors for where yours grow.
+- **Twigs on the outer part only**, every so many px; inner ones were shed long
+  ago. Clumps sit on the outer share of a branch and at twig tips, spaced to
+  touch rather than overlap: the crown reads the same at half the pixels.
 
-```ts
-const grownAt =
-  (plan: Plan, g: number) =>
-  (q: Pt): Pt => ({
-    x: plan.root.x + (q.x - plan.root.x) * g,
-    y: plan.root.y + (q.y - plan.root.y) * g,
-  });
-```
+## Time and age
 
-- The tree scales about its root. A limb paints once `g ≥ at`. Wood is
-  `w × (0.4 + 0.6g)` wide and a clump `r × g`.
-- **Below `g = 0.15` it is a sapling**: a green stem and two leaves. A scaled-down
-  tree at that size is a smudge, and a sapling is the shape people recognise.
-- **Growth is drawn in steps** (e.g. 40 for trees, 30 for shrubs). The step and
-  the season are the bake key, so a plant is repainted a few dozen times as it
-  grows, not every frame. See `game-maker:posed-pixels`.
-- The first wood can grow in fast (minutes) when it is the show; trees that come
-  later grow slowly (e.g. five times as long), because by then the year is
-  turning around them.
+A tree's age need not run at the world clock's pace. The first wood can grow in
+fast (five years in a few minutes, for the show) and then age a year per world
+year. Keep the mapping and its inverse in one place: deaths snapped to a spring,
+shed branches and fruit seasons are all scheduled by turning an age into a time
+(`game-maker:world-clock`). A dead tree's age stops at its death.
 
 ## The season's look
 
@@ -234,12 +244,11 @@ have no rig, because they are not trees.
 
 ## Placement
 
-- **Slots, not scatter.** Trees come up at fixed points along the floor's cracks.
-  Each slot has a base height and a start time; staggering the starts (e.g.
-  40–120 s apart) brings the wood in one tree at a time. Kinds are shuffled by
-  the seed, with any kind the game depends on (a fruit tree to shake) always
-  present. Height is `slot.h × SIZE[species] × (0.9 + 0.2 × hash)`; a per-species
-  size (apple 0.72, pine 1.15) keeps an orchard tree small and a pine tall.
+- **Slots, not scatter.** Trees come up at fixed points along the floor's cracks,
+  each with a start time; staggering the starts (e.g. 40–120 s apart) brings the
+  wood in one tree at a time. Kinds are shuffled by the seed, with any kind the
+  game depends on (a fruit tree to shake) always present. Size varies ±15% within
+  a kind.
 - **Shrubs go where nothing stands in front of them.** Tall kinds go in the gaps
   between the furniture. Low kinds go along the near edge, anywhere.
 - **Draw order is the depth.** Climbers on the back wall, then rubble, then trees,
@@ -250,29 +259,34 @@ have no rig, because they are not trees.
 ## Life cycle
 
 Each slot keeps a tree for good, one generation after another. A life is
-`{ plan, slot, n, born, grows, dies, falls, side, rots }`, each time in seconds
-of the world clock.
+`{ arch, slot, n, born, dies, falls, side, rots }`, each time in seconds of the
+world clock.
 
-- A tree **lives** a few years (e.g. 1500–3000 s with a 600 s year), then dies
-  in the next spring (`look.dead` rises while it stands). After a while it
-  **goes over** sideways, mostly toward the open middle of the scene where it has
-  space to lie, and **rots** for a year or two. Growth stops at death.
+- A tree **lives** its kind's years (compressed if a sitting should see the
+  cycle: a few world hours), and some are crowded out at half that. It dies in
+  the next spring (`look.dead` rises while it stands). After a while it **goes
+  over** sideways, mostly toward the open middle of the scene, and **rots** for
+  a year or two.
 - **The gap grows something else**: a few minutes after the fall, a sapling of a
   different kind comes up within a few px of the old root. **A slot the game
-  depends on regrows its kind** (the fruit tree the player shakes), so the
-  interaction survives every generation.
-- **Stagger the first generation's deaths** (one a spring, in a seeded order).
-  Independent random lifespans snapped to springs bunch up: six trees spread
-  over a few springs can lose half the wood in one.
+  depends on regrows its kind** (the fruit tree the player shakes).
+- **Stagger the first generation's deaths**: one a spring at most. Independent
+  random lifespans snapped to springs bunch up, and three trees falling in one
+  minute reads as a bug.
+- **Shed branches come down.** Each branch's drop is a scheduled event: the dead
+  branch, as it was when it died, falls turning (`game-maker:wind-and-springs`),
+  lands at its tree's foot, settles flat, lies a few minutes and sinks into the
+  moss. What drops while the wood grows in, years in minutes, just goes.
 - **The root plate** is painted under the ground at the root, in the fallen
-  tree's painting only. A standing tree would show it as a disc on the floor. As
-  the tree turns about the edge of its trunk, the far half of the plate lifts and
-  stands up beside the base. That is the one part of a fallen tree that reads
-  above grass and furniture.
-- **Everything that rode the tree follows whichever tree stands.** Fruit comes
-  only from a living fruit tree that is at least 0.9 grown. Falling leaves come
-  only from living broadleaves. A bird whose tree is down moves to the tallest
-  grown tree.
+  tree's painting only. As the tree turns about the edge of its trunk, the far
+  half of the plate lifts and stands up beside the base: the one part of a
+  fallen tree that reads above grass and furniture. Size it from the trunk.
+- **Everything that rode the tree follows whichever tree stands.** Fruit is placed
+  once a year from the tree as it was at the year's start, so it hangs still and
+  keeps its numbers while the tree grows on, and only where the scene shows it.
+  Falling leaves come only from living broadleaves, from above the scene once the
+  crown has left it. A bird needs a branch in view; when its tree has none, it
+  moves to the tallest that has.
 
 The schedule itself (lazily extended per seed, order-independent) is in
 `game-maker:world-clock`. The topple and the bounce are in
@@ -281,9 +295,15 @@ The schedule itself (lazily extended per seed, order-independent) is in
 
 ## Tests worth having
 
-- Same seed, same tree; a different seed, different limbs.
-- Every point stays inside the scene, however tall the tree is asked to be.
-- Fruit only on fruit trees; the perch inside the tree.
+- Same seed, same tree; a different seed, different limbs. Laying a life down
+  further changes nothing it has already grown.
+- It only grows: height and the trunk's foot never shrink, and no stem or branch
+  piece moves from one age to the next (twigs, drawn at their length, may).
+- It comes in at a believable size at five and grows past the scene in time.
+- The crown rises: the lowest leaves climb with age, and dead wood appears below.
+- Every piece hangs on an earlier one or on the root.
+- Fruit only on fruit trees; the perch, when there is one, in view.
 - Climber stems grow from the base out; a creeper stays on what it covers.
-- The life cycle: `born + grows < dies < falls`, the next born after the last
-  fell, deaths on a spring, a slot the game depends on never changes kind.
+- The life cycle: `born < dies < falls`, the next born after the last fell,
+  deaths on a spring, a slot the game depends on never changes kind; shed
+  branches land in the scene and come out the same however the clock is read.
