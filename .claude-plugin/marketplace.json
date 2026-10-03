@@ -1,6 +1,8 @@
 {
   "name": "eetu-skills",
-  "owner": { "name": "Eetu Sutinen" },
+  "owner": {
+    "name": "Eetu Sutinen"
+  },
   "metadata": {
     "description": "Personal, battle-tested Claude Code skills — house patterns so new projects don't reinvent the wheel."
   },
@@ -24,6 +26,11 @@
       "name": "creative-coding",
       "source": "./plugins/creative-coding",
       "description": "Generative / canvas visual effects independent of any app stack: ascii-artist (animated ASCII art — masks, density ramps, particle systems, fbm-noise fields, pseudo-3D, performance rules, single-file delivery)."
+    },
+    {
+      "name": "game-maker",
+      "source": "./plugins/game-maker",
+      "description": "Building blocks for small pixel-art games on a 2D canvas, grown as games need them: dab-sprites (hand-drawn art in dab, the core tool), world-clock, posed-pixels, wind-and-springs, procedural-plants, pixel-brushes, sky-and-weather, depth-and-lod, and game-workbench (the dev loop)."
     }
   ]
 }
