@@ -19,6 +19,20 @@ plugins/
   diagnosis/                         investigating faults without inventing causes
     skills/
       root-cause/                    hypotheses, falsifying tests, "cause unknown" as an ending
+  creative-coding/                   generative canvas effects
+    skills/
+      ascii-artist/                  animated ASCII on a canvas
+  game-maker/                        building blocks for pixel-art games
+    skills/
+      dab-sprites/                   hand-drawn art in dab, the core tool
+      world-clock/                   the world as a function of time and seed
+      posed-pixels/                  paint once, re-pose per frame
+      wind-and-springs/              wind, damped springs, rigs, falls
+      procedural-plants/             trees, shrubs, climbers, grass, moss
+      pixel-brushes/                 painting primitives, texture, palettes
+      sky-and-weather/               seasons, days, sun, moon, weather
+      depth-and-lod/                 layering, distance, level of detail
+      game-workbench/                bench, shuttle, screenshots, perf
 ```
 
 New domains get their own plugin beside `homebrew/` (e.g. `raspi-iac`,
