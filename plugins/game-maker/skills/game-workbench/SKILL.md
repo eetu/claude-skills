@@ -91,6 +91,9 @@ a unit that plays it, pokes it and retunes it, not only a still picture.
 - **Sliders re-bake:** every tunable constant is a range control. Key the bake
   cache by seed, tuning and input (a small map, the newest 16) so a grid of
   seeds doesn't re-bake each frame.
+- **On or off is a checkbox**, not a two-item dropdown (a `toggle` control whose
+  value is 1 or 0). Speeds start at 1×: the bench's own play and pause covers
+  "paused".
 - **Overlays as a select:** the real look, plus debug views: each piece by its
   class, the hazard as a heat map, the release order, a profile of the heap.
   Draw a readout in the scene with the pixel font (counts, bake ms), since the

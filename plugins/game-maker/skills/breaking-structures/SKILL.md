@@ -138,7 +138,7 @@ Hazard: `h = m(t) · [w(t) + Σ_k A_k · o_k(t)]`.
 - **Inserts and hung things:** an insert goes when what holds it goes (the piece
   over its middle, either jamb, or everything it sits on). A hung thing goes
   with the piece above it, or once half the wall behind it has gone.
-- **Warning:** a piece about to wear loose shows its crack 3 s ahead and shakes
+- **Warning (worn pieces only):** a piece about to wear loose shows its crack 3 s ahead and shakes
   for the last 0.3 s.
 
 What held up in tuning, at ten minutes a year:
@@ -160,6 +160,11 @@ motion as closed-form phases (`ease`, `pivot`, `fly`), read by `poseAt(phases, t
   - It leaves at `atan(T/H) + 0.15` rad, with `φ = ½αt²`.
   - Pick ω so the body lands turned 100–150° (`ω = (Φ − φ_leave)/fall_time`,
     clamped 1.5–6). A knocked piece spins 1.4× more.
+- **Only a slab tips.** A piece deeper than it is tall (a brick: 4 px tall and
+  9 deep; a rubble stone) would have to turn most of a right angle before tipping
+  over its front edge, hanging above the wall while its neighbours turn through
+  it. It is pushed out instead (in 0.1–0.2 s when knocked, 0.3–0.6 s when it
+  slides), then falls tumbling a little.
 - **Slip**: held from above, it slides out by its thickness over 0.3–0.6 s, then
   flies.
 - **Drop**: with no bed, it falls in the plane onto the sill (the top of what
@@ -246,13 +251,19 @@ time by function). What it found, and the fixes, took a bake from 450 to about
 | the heap's sinking recursion at a new moment on every flight step                                | ask it to the second during the bake (it moves thousandths of a px a second)                                                                                                                                                             |
 | bisection from the release to the horizon                                                        | widen in doubling steps from the release, then halve to 0.02 s; leave out collapses that reach under 5%                                                                                                                                  |
 
-Two more lessons:
+Draw pieces in flight **farthest first** (by depth, then id), or overlapping
+pieces swap places from frame to frame.
+
+Three more lessons:
 
 - **Settings in pixels or wall height, not in courses or pieces.** A setting
   counted in courses or pieces silently changes meaning when the pieces shrink:
   how hard the wall is to loosen (spread the list over however many courses
   there are), which part of the foot is sound, how deep a collapse bites, what
   counts as a scrap.
+- **Only what wears loose warns.** Mark the releases that come from wear and
+  crack only those. A piece a cascade or a blow brings down would otherwise show
+  a warning that began before the blow, and a whole cascade flashes.
 - **Keep bodies in the order they set off.** Pieces of a broken block set off
   when it lands. Appended after it, they put the list out of order, and a reader
   that stops at the first body not yet started skips others already in flight:
