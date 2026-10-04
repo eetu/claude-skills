@@ -23,16 +23,12 @@ on what happened a moment ago (a pile of envelopes, a queue on a belt).
 
 ## Why a function of time
 
-- **Scrubbing works both ways.** A dev shuttle can run the clock at -200× and the
-  world un-grows, un-falls, un-rots (`game-maker:game-workbench`).
-- **A reload keeps it.** Persist only when it began (`startedAt`) and the seed;
-  `since = (Date.now() - startedAt) / 1000` rebuilds everything, including years
-  that passed while the tab was closed.
-- **Tests need no DOM and no loop.** Ask for second 9000 directly.
-- **Nothing drifts**: no accumulated float error, no frame-rate dependence.
-
-The cost: anything that _would_ be state must be derivable. Most of this skill is
-how to derive it.
+Scrubbing works both ways (a dev shuttle runs the world back at -200×,
+`game-maker:game-workbench`); a reload keeps it (persist only `startedAt` and the
+seed; `since = (Date.now() - startedAt) / 1000` rebuilds everything, years that
+passed while the tab was closed included); tests ask for second 9000 directly;
+nothing drifts with frame rate. The cost: anything that _would_ be state must be
+derivable. Most of this skill is how.
 
 ## Randomness: a hash, salted per decision
 
@@ -159,18 +155,9 @@ it.
 ## Cues: events from (from, to] windows
 
 Sound (and anything else that fires once) is derived, not emitted: each frame
-asks what happened between the previous `since` and this one.
-
-```ts
-export const fellCue = (from: number, to: number, seed: number): Fell[] =>
-  lives.flatMap((l) =>
-    l.falls > from && l.falls <= to
-      ? [{ x: l.plan.root.x, kind: "crack" }]
-      : l.falls + FALL_S > from && l.falls + FALL_S <= to
-        ? [{ x: l.plan.root.x + l.side * l.plan.height * 0.6, kind: "crash" }]
-        : [],
-  );
-```
+asks what happened between the previous `since` and this one, e.g. every tree
+with `from < falls <= to` cracks, and every one with
+`from < falls + FALL_S <= to` crashes where its crown lands.
 
 - **Half-open window, `from` exclusive**, so an event on a frame boundary fires
   once.

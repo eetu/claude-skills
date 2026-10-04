@@ -164,7 +164,6 @@ const bent = (s: number) => ({ x: d * s ** 1.5, y: nod * Math.abs(d) * s * s });
 - **Leaves turn over** to their paler undersides on the wave's crest: the
   turned share ramps from `|wind|` 0.45 to 1.1, and evergreens never turn.
   `game-maker:posed-pixels` turns a clump leaf by leaf using a per-pixel rank.
-  Trap: recolouring a whole clump at once blinks.
 - **Bare stems** catch `0.4 + 0.6·leaves` of the wind.
 
 ## A tap is a push into the wind

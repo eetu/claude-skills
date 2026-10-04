@@ -113,20 +113,12 @@ phases reach new, full and back.
 Weather is a table of **spells as shares of each season**, with clear sky
 between them:
 
-```ts
-const SPELLS = [
-  [[0.4, 0.55]], // summer rain
-  [
-    [0.15, 0.4],
-    [0.55, 0.75],
-  ], // a wet autumn with a dry spell in it
-  [
-    [0.05, 0.38],
-    [0.55, 0.8],
-  ], // two snowfalls, clear frost (and the moon) between and after
-  [[0.3, 0.45]], // a spring shower
-];
-```
+| season | spells              | reads as                                                    |
+| ------ | ------------------- | ----------------------------------------------------------- |
+| summer | 0.4–0.55            | a rain                                                      |
+| autumn | 0.15–0.4, 0.55–0.75 | a wet autumn with a dry spell in it                         |
+| winter | 0.05–0.38, 0.55–0.8 | two snowfalls, clear frost (and the moon) between and after |
+| spring | 0.3–0.45            | a shower                                                    |
 
 **Trap: weather that never stops hides the sky.** Overcast drains the sky colour
 and the sun and moon are drawn only on clear skies, so snowing all winter means a
