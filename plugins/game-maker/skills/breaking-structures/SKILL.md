@@ -163,8 +163,10 @@ motion as closed-form phases (`ease`, `pivot`, `fly`), read by `poseAt(phases, t
 - **Only a slab tips.** A piece deeper than it is tall (a brick: 4 px tall and
   9 deep; a rubble stone) would have to turn most of a right angle before tipping
   over its front edge, hanging above the wall while its neighbours turn through
-  it. It is pushed out instead (in 0.1–0.2 s when knocked, 0.3–0.6 s when it
-  slides), then falls tumbling a little.
+  it. It is pushed out instead, until its middle is past the face, then falls
+  tumbling a little. Push at **real speeds**: 1–1.75 m/s when knocked, a quarter
+  to half a metre a second when it slides out. A push of its whole depth in a
+  sixth of a second (3.5 m/s) threw stones three metres into the room.
 - **Slip**: held from above, it slides out by its thickness over 0.3–0.6 s, then
   flies.
 - **Drop**: with no bed, it falls in the plane onto the sill (the top of what
@@ -250,6 +252,15 @@ time by function). What it found, and the fixes, took a bake from 450 to about
 | exposure worked out again for every piece after every event                                      | only for pieces next to what went, or whose class changed                                                                                                                                                                                |
 | the heap's sinking recursion at a new moment on every flight step                                | ask it to the second during the bake (it moves thousandths of a px a second)                                                                                                                                                             |
 | bisection from the release to the horizon                                                        | widen in doubling steps from the release, then halve to 0.02 s; leave out collapses that reach under 5%                                                                                                                                  |
+
+Make the heap reach as far as anything can land (1.5 m here). A piece landing
+past its edge gets pulled back to rest, a visible slide toward the wall.
+
+**Turn stones in steps** when drawing them: a sixteenth of a turn out of the
+plane, a thirty-second in it. Turned smoothly, a small textured piece is
+re-sampled every frame and its grain crawls. In steps it shows a new pose every
+few frames, like drawn rotation frames. Chips spinning faster than about 3 rad/s
+shimmer whatever you do.
 
 Draw pieces in flight **farthest first** (by depth, then id), or overlapping
 pieces swap places from frame to frame.
