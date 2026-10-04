@@ -172,6 +172,18 @@ motion as closed-form phases (`ease`, `pivot`, `fly`), read by `poseAt(phases, t
 - **Drop**: with no bed, it falls in the plane onto the sill (the top of what
   still stands below), then pivots off that edge. A deep piece landing on a sill
   inside the wall is kicked out at a push's speed, not slid out slowly.
+- **Let go at once, fall when clear.** Release a piece a few hundredths of a
+  second after its last bed support goes, not a cascade wave later: a wave
+  later, it hangs over an empty slot for up to half a second. Then hold it in
+  place until what it sits on has cleared the wall, and find its sill when it
+  gets there, not when it sets off: the support may have left by then.
+- **Slide out until clear.** Stopping with its middle just past the face, a
+  deep piece falls with its back half through the courses below. Slide it until
+  its whole depth is clear, or keep a falling slab's centre at least its turned
+  half-depth off the face while it passes standing masonry.
+- **Rest onward.** Pick a landing's rest angle ahead in the direction it spins
+  (the next face down that way). The nearest face down turns half the pieces
+  back the way they came, and a drawing turned in steps flips back and forth.
 - **What is leaving is still there.** A piece on its way out of the wall's
   thickness counts as something to land on, from its release until it has left.
   The sill counting only what stands, the piece above drops into the space of
@@ -203,6 +215,19 @@ motion as closed-form phases (`ease`, `pivot`, `fly`), read by `poseAt(phases, t
   moves while any shift of 2, 4, 8 or 12 px outward or sideways is steeper than
   repose (tan 40° ≈ 0.84), never in toward the wall. Push big pieces a few px
   further out first, so they reach the toe.
+- **Find the resting place when it settles,** and lay bodies in the order they
+  settle, not the order they were baked: asked at landing, the heap misses
+  what settles in between (the other pieces of the same break, first), and
+  pieces at rest overlap.
+- **As deep as the floor that shows.** A heap shallower than the floor in view
+  makes flights beyond it be cut short to its edge, where they can't roll off:
+  they stack into a column along it. Cut short anyway, land somewhere in the
+  heap's last stretch, not on its edge.
+- **Rest on whole pixels, upward.** Snap a rest pose so its drawn centre is on a
+  whole pixel (no half-pixel tie to round differently on the way in and at
+  rest), always upward, and move its recorded top with it: snapped down, its
+  bottom row is under the floor; its top not moved, it is not all under when
+  sunk its full height.
 - **Sinking without floating:** `sink_b = max(own(t), max over supports j of
 (sink_j(t) − sink_j(when b came to rest)))`. A piece rides down with what holds
   it up; it is gone when sunk its full height. Start sinking minutes after it
@@ -309,6 +334,14 @@ Three more lessons:
     forever);
   - hung things go with what holds them;
   - the same answers asked forwards, backwards or shuffled.
+  - **a tap changes nothing before it**: bake with and without one input
+    (a blow, a roof brought down; several, at once, on what is already gone)
+    and compare everything up to it, poses included. Two traps it catches: an
+    input collapse given the lead-up shock the scheduled ones get (it loosens
+    the wall before it is struck), and pieces numbered after the whole blocks
+    as they break, so every later release renumbers them, and anything hashed
+    from the number (the turn a chip lands with) changes. Number pieces in a
+    range of their own, in the order they break.
 - **Falls:** no pose jumps across phase boundaries (under 2 px, 0.25 rad);
   tipped pieces land turned within range.
 - **Heap:** nothing floats while sinking.

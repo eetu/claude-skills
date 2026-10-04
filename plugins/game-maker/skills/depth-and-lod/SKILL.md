@@ -118,7 +118,17 @@ own pixel mask:
    every frame, and its outline and grain shimmer. A turned stone moved a third
    of a pixel a frame changed about 50 of its 300 pixels each frame. Pinned, its
    turned image only moves, a whole pixel at a time. With an anchor of its own, the
-   first turn step jumps an odd-sized body a pixel.
+   first turn step jumps an odd-sized body a pixel. Pin it at the body's true
+   centre: half a row off is a tenth of a pixel at one step, a whole row half
+   round.
+5. **Only a small turn is a turn of the drawing.** The drawing already has the
+   floor's slant in it (`y + K·z`), and turning it turns the slant too. Half round,
+   what faces up is drawn underneath. With the turn in the plane applied after
+   the tilt (`Rz(θ)·Rx(φ)`), `Rz(π)·Rx(φ) = Rx(−φ)·Rz(π)`: past a quarter turn
+   either way, draw the body as itself turned half round in its own plane (its
+   mask and grain upside down and back to front), its tilt reversed, and turn
+   the drawing by `θ − π`. The slant's error then never exceeds a quarter
+   turn's, `K·T/2` at most.
 
 Test it:
 
