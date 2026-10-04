@@ -76,6 +76,28 @@ const wood: Unit = {
 range sized for the first year cannot show a tree that dies in year four. Size
 ranges from the world's longest process, not from the default.
 
+## A simulator unit
+
+A world that is baked from input (a seed, a tuning, blows given at moments) gets
+a unit that plays it, pokes it and retunes it, not only a still picture.
+
+- **Its own clock:** a `since` slider plus a rate (paused, 1×, 10×, 100×,
+  1000×). Re-anchor on any change: `base = slider` when the slider moves,
+  `base += (t − t0)·oldRate` when the rate changes. The world then never jumps.
+  Give the slider sub-second steps, or a single fall cannot be found.
+- **Taps are timed input:** a tap records `{t: since, x, y, kind}` into the input
+  list and re-bakes. Scrubbing back before it un-does it, for free. Add a
+  "forget taps" choice rather than a button the bench doesn't have.
+- **Sliders re-bake:** every tunable constant is a range control. Key the bake
+  cache by seed, tuning and input (a small map, the newest 16) so a grid of
+  seeds doesn't re-bake each frame.
+- **Overlays as a select:** the real look, plus debug views: each piece by its
+  class, the hazard as a heat map, the release order, a profile of the heap.
+  Draw a readout in the scene with the pixel font (counts, bake ms), since the
+  bench has no text slot.
+- **A companion unit** shows one piece alone with sliders for its pose and its
+  look, to tune the drawing apart from the physics.
+
 ## Time as a control in the running game
 
 A dev bar under every page jumps between levels or days and holds the

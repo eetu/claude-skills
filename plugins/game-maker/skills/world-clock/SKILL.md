@@ -179,22 +179,23 @@ export const fellCue = (from: number, to: number, seed: number): Fell[] =>
 
 ## Structures that break: nothing floats
 
-A breaking structure needs a support rule, or a schedule that removes the pieces
-underneath leaves the ones above hanging:
+A breaking structure needs a support rule, or a schedule that takes away what is
+underneath leaves the pieces above hanging. The short version:
 
-1. Build a contact graph once: how many px of edge each piece shares with each
-   neighbour, and with the anchors (the floor line, the side walls).
-2. A piece stands while a chain of **firm** holds (`HOLD_PX` = 3 px of shared
-   edge or more) reaches an anchor. Below 3 px the contact reads as a crack,
-   and a piece "held" by a one-pixel contact hangs visibly in the air.
-3. Replay the break order once, at build time. After each break, anything no
-   longer held gets `at = min(at, t + 0.2 + 0.6 * hash)` and joins the queue.
-   The cascade is now part of the schedule; nothing is decided per frame.
-4. Things that hang on the structure (a clock, a window) find their anchor
-   piece (the first piece above them) and go at `anchor.at + 0.15`.
+1. Build a contact graph once from pixel adjacency, kept from 3 px of shared
+   edge. A one-pixel contact reads as a crack.
+2. A piece stands on its **bed**: contacts with what is strictly lower (a lower
+   course, the base). Any shared edge is not enough; with that, pieces hang off a
+   neighbour's side.
+3. Replay the cascade once at build time: after each break, settle what no
+   longer stands in waves, each piece timed after its own supports. The cascade
+   becomes part of the timeline, and nothing is decided per frame.
+4. Things hung on the structure go with the piece above them.
 
-Pin it with a test that counts pieces standing without a firm chain, at many
-times and seeds (`floatingAt(...) === 0`).
+Pin it with a test that counts pieces standing on nothing at many times and
+seeds. For masonry done properly (centre of mass over the bed, mortar, arching
+over gaps, decay by exposure, falls, a heap that sinks, plaster), see
+`game-maker:breaking-structures`.
 
 ## The stepped side
 

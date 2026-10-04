@@ -87,6 +87,30 @@ The test is `overlap > 0`, not "mostly behind". A piece lying half in view at a
 front's edge reads as peeking out. For the same reason the fronts are one pixel
 wider than the furniture on each side (`x - 1`, `w + 2`).
 
+### Depth on the floor as `y + K·z`, and things turned out of the plane
+
+When something must move toward or away from the viewer on a strip of floor (rubble
+tipping out of a wall, a body falling into the room), give it a depth `z` and
+draw it at `sy = y + K·z`. K = 0.25 reads as a floor seen from a little above: a
+70 cm heap at a wall's foot spans 7 px of screen.
+
+**A block turned out of the picture plane**, drawn column by column through its
+own pixel mask:
+
+1. Each column's cross-section, the block's height by its thickness, is turned
+   by φ.
+2. A face is visible when its turned normal satisfies `n_z − K·n_y > 0`. Only
+   those faces fill the rows they project to: the front, the back, the top and
+   the bottom bands. At most two show, and they don't overlap.
+3. Map each screen row back to a mask row for the face's texture.
+4. A small turn in the plane comes last, by inverse nearest-pixel sampling.
+
+A slab lying flat then shows edge-on: its bed toward the viewer, a strip of its
+face on top, with no special case. Clip each body at the floor line in front of
+it (`ground + K·z_front`), so sinking needs no mask. Put a body in the layer
+behind the wall (seen only through its gaps) while its near edge is still at or
+behind the wall's face, and in the room's layer after.
+
 ### Place things by what will hide them
 
 List what draws after a thing in its band before you choose where it goes.
