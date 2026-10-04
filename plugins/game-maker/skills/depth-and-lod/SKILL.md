@@ -103,7 +103,13 @@ own pixel mask:
    those faces fill the rows they project to: the front, the back, the top and
    the bottom bands. At most two show, and they don't overlap.
 3. Map each screen row back to a mask row for the face's texture.
-4. A small turn in the plane comes last, by inverse nearest-pixel sampling.
+4. A small turn in the plane comes last, by inverse nearest-pixel sampling,
+   **about a centre rounded to a whole pixel**. Turned about a centre between
+   pixels, a body moving a fraction of a pixel a frame is sampled afresh every
+   frame, and its outline and grain shimmer. A turned stone moved a third of a
+   pixel a frame changed about 50 of its 300 pixels each frame. Rounded, its
+   turned image only moves, a whole pixel at a time. Test it: move a turned body
+   sub-pixel and check its shape, lined up by whole pixels, never changes.
 
 A slab lying flat then shows edge-on: its bed toward the viewer, a strip of its
 face on top, with no special case. Clip each body at the floor line in front of
