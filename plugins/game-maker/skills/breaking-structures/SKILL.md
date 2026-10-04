@@ -231,6 +231,34 @@ Merge impacts within 0.06 s and 32 px into one thud. Only a whole piece's first
 impact sounds; its fragments' landings fold into that thud. Report cues in
 `(from, to]` so split windows add up (`game-maker:world-clock`).
 
+## Many small pieces
+
+Lay the wall in its smallest pieces (single bricks: about 700) to find what does
+not scale. Profile with V8's sampler (run the test with `--cpu-prof` and sum self
+time by function). What it found, and the fixes, took a bake from 450 to about
+100 ms:
+
+| cost                                                                                             | fix                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a full gap map (flood fill, an allocated cell list per gap) on every judgement, thousands a bake | judge an arch lazily: flood only the gap under an overhanging piece, upward first, and stop when it reaches the top course (no arch) or a gap already found open; keep the marks for the rest of the call, in buffers kept between calls |
+| judging the settled state twice                                                                  | `settle` returns the classes it ended on; reuse them                                                                                                                                                                                     |
+| exposure worked out again for every piece after every event                                      | only for pieces next to what went, or whose class changed                                                                                                                                                                                |
+| the heap's sinking recursion at a new moment on every flight step                                | ask it to the second during the bake (it moves thousandths of a px a second)                                                                                                                                                             |
+| bisection from the release to the horizon                                                        | widen in doubling steps from the release, then halve to 0.02 s; leave out collapses that reach under 5%                                                                                                                                  |
+
+Two more lessons:
+
+- **Settings in pixels or wall height, not in courses or pieces.** A setting
+  counted in courses or pieces silently changes meaning when the pieces shrink:
+  how hard the wall is to loosen (spread the list over however many courses
+  there are), which part of the foot is sound, how deep a collapse bites, what
+  counts as a scrap.
+- **Keep bodies in the order they set off.** Pieces of a broken block set off
+  when it lands. Appended after it, they put the list out of order, and a reader
+  that stops at the first body not yet started skips others already in flight:
+  falling pieces flicker. Sort by start, and test that every body in flight is
+  read at every frame.
+
 ## Tests worth writing
 
 - **Bond:** it covers the wall exactly; no scraps; each piece connected; beds
