@@ -1,6 +1,6 @@
 ---
 name: game-workbench
-description: The dev loop for a small pixel-art canvas world that is a function of time and seed — a workbench that draws each scene piece alone with live controls and a grid of seeds, a time shuttle that runs the world ahead or back at up to 200×, Playwright scripts that warp to a moment and screenshot it, ImageMagick montages to compare stages, pixel fingerprints that prove a refactor changed nothing, and a frame-time harness with a baseline measured in a git worktree. Use when setting up dev tooling for a canvas game or simulation, adding a piece that should be inspectable on its own, checking a change visually at a time that takes hours to reach, proving a move or refactor is behaviour-preserving, or measuring whether a feature made frames slower.
+description: The dev loop for a small pixel-art canvas world that is a function of time and seed — a workbench that draws each scene piece alone with live controls and a grid of seeds, simulator units that play, poke and retune a baked world, a time shuttle that runs the world ahead or back at up to 200×, Playwright scripts that warp to a moment and screenshot it, ImageMagick montages to compare stages, pixel fingerprints that prove a refactor changed nothing, and a frame-time harness with a baseline measured in a git worktree. Use when setting up dev tooling for a canvas game or simulation, adding a piece that should be inspectable on its own, checking a change visually at a time that takes hours to reach, proving a move or refactor is behaviour-preserving, or measuring whether a feature made frames slower.
 user-invocable: true
 ---
 
@@ -19,11 +19,10 @@ backwards. This skill is the tooling that cashes that in.
 ## The precondition: pieces draw themselves
 
 A tree, a sprite, a wall calendar, a line of pixel text: each is a draw function
-over a `CanvasRenderingContext2D` and plain values, with no DOM and no reach
-into the game's stores. That is the whole reason a bench is possible. A piece
-that reads a store or a component's state can only be seen inside the game, at
-whatever moment the game happens to be in. Keep new pieces this shape, and keep
-the game's own stage a thin caller of them.
+over a `CanvasRenderingContext2D` and plain values, with no DOM and no reach into
+the game's stores. A piece that reads a store can only be seen inside the game,
+at whatever moment the game happens to be in. Keep new pieces this shape, and the
+game's own stage a thin caller of them.
 
 ## The bench
 
@@ -41,19 +40,7 @@ type Unit = {
   animated?: boolean; // redraw every frame on the bench clock
   tap?: (v: Values, t: number, at: { x: number; y: number }) => void;
 };
-
-const wood: Unit = {
-  name: "wood",
-  defaults: { seed: 1, since: 450 },
-  params: () => [
-    { kind: "seed", key: "seed" },
-    { kind: "range", key: "since", min: 0, max: 12_000, step: 5 },
-  ],
-  size: () => ({ w: SCENE_W, h: SCENE_H }),
-  animated: true,
-  draw: (ctx, v, t) =>
-    drawTrees(ctx, Number(v.since) + t, Number(v.seed), tapsOf(v)),
-};
+// e.g. the wood: draw: (ctx, v, t) => drawTrees(ctx, Number(v.since) + t, Number(v.seed))
 ```
 
 - **Grid of seeds** (`g`): the same values at `seed`, `seed+1`, … `seed+7`.
@@ -64,10 +51,9 @@ const wood: Unit = {
 - **Crisp pixels:** each tile sizes its canvas to `size × zoom × devicePixelRatio`,
   sets the transform to that factor, `imageSmoothingEnabled = false`, and CSS
   `image-rendering: pixelated`.
-- **Tap** maps the pointer to scene px and calls `unit.tap`, which mutates the
-  unit's own state (the wood keeps a map of taps per seed, so a tap on the fruit
-  tree shakes one down). A tap counter forces a redraw so a paused tile still
-  shows what the tap did.
+- **Tap** maps the pointer to scene px and calls `unit.tap`, which records the
+  tap in the unit's own state (taps per seed); a tap counter forces a redraw so a
+  paused tile still shows it.
 - **Dev only:** the route's `load` throws `error(404)` unless
   `import.meta.env.DEV`, and the dev bar is a dynamic import behind the same
   check, so neither reaches the production bundle.
@@ -81,8 +67,8 @@ ranges from the world's longest process, not from the default.
 A world that is baked from input (a seed, a tuning, blows given at moments) gets
 a unit that plays it, pokes it and retunes it, not only a still picture.
 
-- **Its own clock:** a `since` slider plus a rate (paused, 1×, 10×, 100×,
-  1000×). Re-anchor on any change: `base = slider` when the slider moves,
+- **Its own clock:** a `since` slider plus a rate starting at 1× (10×, 100×,
+  1000×; the bench's own play and pause covers paused). Re-anchor on any change: `base = slider` when the slider moves,
   `base += (t − t0)·oldRate` when the rate changes. The world then never jumps.
   Give the slider sub-second steps, or a single fall cannot be found.
 - **Taps are timed input:** a tap records `{t: since, x, y, kind}` into the input
@@ -92,12 +78,10 @@ a unit that plays it, pokes it and retunes it, not only a still picture.
   cache by seed, tuning and input (a small map, the newest 16) so a grid of
   seeds doesn't re-bake each frame.
 - **On or off is a checkbox**, not a two-item dropdown (a `toggle` control whose
-  value is 1 or 0). Speeds start at 1×: the bench's own play and pause covers
-  "paused".
-- **Overlays as a select:** the real look, plus debug views: each piece by its
-  class, the hazard as a heat map, the release order, a profile of the heap.
-  Draw a readout in the scene with the pixel font (counts, bake ms), since the
-  bench has no text slot.
+  value is 1 or 0).
+- **Overlays as a select:** the real look, plus debug views (each piece by its
+  class, the hazard as a heat map, the release order, a profile of the heap), and
+  a readout drawn in the scene with the pixel font (counts, bake ms).
 - **A companion unit** shows one piece alone with sliders for its pose and its
   look, to tune the drawing apart from the physics.
 
@@ -157,9 +141,8 @@ await page
   .screenshot({ path: `at-${t}.png` });
 ```
 
-- **Ask the world when things happen, then shoot those moments.** Import the
-  schedule module in the page, find when a tree dies, falls and rots, and warp
-  to each stage. Possible only because the world is a function of time.
+- **Ask the world when things happen, then shoot those moments**: import the
+  schedule in the page, find when a tree dies, falls and rots, and warp to each.
 - **Bench shots:** press `]` to the unit, fill params by their label text,
   screenshot `main`. Pass params as JSON so one script shoots any unit.
 - **Compare stages in one image:** crop and tile with ImageMagick, then read
@@ -170,8 +153,10 @@ await page
   magick a.png b.png c.png +append row.png             # side by side; -append stacks
   ```
 
-- **Crop to what changed.** A fallen log at the foot of a wall vanishes in a
-  full frame; a zoomed crop of the ground band shows whether it is there at all.
+- **Crop to what changed**, zoomed: a fallen log at a wall's foot vanishes in a
+  full frame.
+- **Headless Chromium is not Safari.** A canvas bug only Safari shows never
+  appears in a capture (`game-maker:posed-pixels`).
 
 **Trap — stale modules after many HMR edits.** The script's `import()` can stop
 reaching the module instance the app runs, so state set from the script never
