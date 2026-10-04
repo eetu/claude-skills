@@ -136,9 +136,9 @@ const turn = clamp(parentTurn + own, ALL_MAX); // turns add up from the root
 - **Flutter.** Clumps jitter on top of the rig with hashed per-clump phases, but
   only once `|wind|` passes 0.3: leaves keep still in a light breeze.
 
-Trap: moving rows of a sprite sideways reads as **tearing**, and skewing a
-whole sprite moves trunk and leaves as one rigid group. Pose the parts and let
-`game-maker:posed-pixels` re-place their pixels.
+Pose the parts and let `game-maker:posed-pixels` re-place their pixels: rows
+shifted sideways tear, and a skewed sprite moves trunk and leaves as one rigid
+group.
 
 ## Rods and waves: soft plants
 
@@ -197,10 +197,10 @@ Position is a function of the time since release. Store no velocities.
 
 - **Free fall.** `x = x0 + vx·t`, `y = y0 + ½·G·t²`, landing after
   `√(2·(land − bottom)/G)`. `land` is the floor, or the base of furniture the
-  body falls behind (`game-maker:depth-and-lod`). For a 320×180 scene,
-  `G` ≈ 240 px/s² makes a 90 px drop take 0.87 s, which reads as heavy without
-  being slow.
-- **Tumble in quarter turns**: `k = (k0 + ⌊7·t⌋) % 4`. Pixel art rotates by 90°
+  body falls behind (`game-maker:depth-and-lod`). `G` is real gravity at the
+  scene's scale (392 px/s² at 40 px/m), one for everything that falls, so a
+  branch and a block come down alike.
+- **Tumble in quarter turns**: `k = (k0 + ⌊7·t⌋) % 4`, which pixel art takes
   without resampling (`game-maker:posed-pixels`).
 - **Landing**: a 2 px sine hop over 0.3 s and a slide of 0.3·`vx` sell the
   impact.
@@ -208,8 +208,7 @@ Position is a function of the time since release. Store no velocities.
   hashed spot on the ground. `x` lerps by `u` and `y` by `u²` over 0.6 s.
 - **Toppling**: `angle = side·(π/2)·u²` over 2.4 s, slow and then all at once.
   The wind keeps swaying it until it lands, then it bounces back 0.06 rad over
-  0.4 s. **Pivot at the trunk's edge on the falling side**: pivoting at the
-  centre leaves half the fallen trunk below the ground line.
+  0.4 s. The pivot and the turning are `game-maker:posed-pixels`.
 - **Sound**: release and landing are cues, read from a `(from, to]` window and
   never fed back into motion (`game-maker:world-clock`).
 
