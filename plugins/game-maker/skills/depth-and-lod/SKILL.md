@@ -107,9 +107,19 @@ own pixel mask:
 
 A slab lying flat then shows edge-on: its bed toward the viewer, a strip of its
 face on top, with no special case. Clip each body at the floor line in front of
-it (`ground + K·z_front`), so sinking needs no mask. Put a body in the layer
-behind the wall (seen only through its gaps) while its near edge is still at or
-behind the wall's face, and in the room's layer after.
+it (`ground + K·z_front`), so sinking needs no mask.
+
+**Depth against a wall, per pixel, not per body.** Keep each projected pixel's
+depth as you rasterise it (the faces' depths interpolate down each span), and
+draw a body leaving a wall twice:
+
+- into the view behind the wall's gaps, only its pixels behind the face;
+- in the room, only its pixels in front of it.
+
+Do not switch a whole body from one layer to the other. The frame its near edge
+passes the face, all of it jumps in front, including a top face still buried in
+the wall: a cap pops over the piece above, and with several pieces crossing on
+different frames, it flickers.
 
 ### Place things by what will hide them
 
