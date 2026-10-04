@@ -170,7 +170,13 @@ motion as closed-form phases (`ease`, `pivot`, `fly`), read by `poseAt(phases, t
 - **Slip**: held from above, it slides out by its thickness over 0.3–0.6 s, then
   flies.
 - **Drop**: with no bed, it falls in the plane onto the sill (the top of what
-  still stands below), then pivots off that edge.
+  still stands below), then pivots off that edge. A deep piece landing on a sill
+  inside the wall is kicked out at a push's speed, not slid out slowly.
+- **What is leaving is still there.** A piece on its way out of the wall's
+  thickness counts as something to land on, from its release until it has left.
+  The sill counting only what stands, the piece above drops into the space of
+  one still crawling out, and the two overlap: drawn per pixel by depth, they
+  fight pixel by pixel, which reads as flicker.
 - **Topple**: it first tilts about its support corner in the plane.
 - **Fly**: ballistic at **real gravity** (392 px/s² at 40 px/m), spin constant
   until an impact. Find the landing by stepping 1/120 s **during the bake only**,
