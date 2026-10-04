@@ -121,6 +121,13 @@ passes the face, all of it jumps in front, including a top face still buried in
 the wall: a cap pops over the piece above, and with several pieces crossing on
 different frames, it flickers.
 
+**A depth buffer across bodies, too.** Bodies that fall together without
+colliding pass through each other. Sorted by their centres, the overlap changes
+hands in one frame when two swap order, which looks like a hit. Share a per-pixel
+depth buffer between the frame's bodies and keep the nearer at each pixel. The
+picture then no longer depends on draw order: test that by painting a frame
+forwards and backwards and comparing.
+
 ### Place things by what will hide them
 
 List what draws after a thing in its band before you choose where it goes.
