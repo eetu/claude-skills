@@ -30,7 +30,7 @@
     {
       "name": "game-maker",
       "source": "./plugins/game-maker",
-      "description": "Building blocks for small pixel-art games on a 2D canvas, grown as games need them: dab-sprites (hand-drawn art in dab, the core tool), world-clock, posed-pixels, wind-and-springs, procedural-plants, pixel-brushes, sky-and-weather, depth-and-lod, and game-workbench (the dev loop)."
+      "description": "Building blocks for small pixel-art games on a 2D canvas, grown as games need them: dab-sprites (hand-drawn art in dab, the core tool), world-clock, posed-pixels, wind-and-springs, procedural-plants, pixel-brushes, sky-and-weather, depth-and-lod, breaking-structures (masonry that wears, breaks, falls and piles), and game-workbench (the dev loop)."
     }
   ]
 }
