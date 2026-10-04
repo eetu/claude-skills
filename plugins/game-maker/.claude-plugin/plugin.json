@@ -1,0 +1,7 @@
+{
+  "name": "game-maker",
+  "description": "Building blocks for small pixel-art games on a 2D canvas, grown as games need them: dab-sprites (hand-drawn art in dab, the core tool), world-clock (the world as a function of time and seed), posed-pixels (paint once, re-pose per frame), wind-and-springs (how things move), procedural-plants (trees, shrubs, climbers, grass, moss), pixel-brushes (painting primitives), sky-and-weather (seasons, days, sun, moon, weather), depth-and-lod (layering, distance, detail), breaking-structures (masonry that wears, breaks, falls and piles), game-workbench (the dev loop: bench, shuttle, screenshots, perf).",
+  "author": {
+    "name": "Eetu Sutinen"
+  }
+}
