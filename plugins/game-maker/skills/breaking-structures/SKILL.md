@@ -121,7 +121,9 @@ Hazard: `h = m(t) · [w(t) + Σ_k A_k · o_k(t)]`.
 - **Events, in time order:** a scheduled roof collapse knocks the standing wall
   in its band, from the top down to its bite, stopping at an opening; a blow
   given as input (a list of knocks in the spec); a piece whose hazard ran out
-  (glued, it topples; under load, it slips out; free, it tips out).
+  (glued, it topples; under load, it slips out; free, it tips out). A collapse
+  takes each piece after a delay from **its nearest column** in the bite, not
+  the first scanned, or one side comes down late.
 - **After each event, settle.** A piece that lost its last bed support goes a
   few hundredths of a second after that support, not a wave later: a wave later
   it hangs over an empty slot for up to half a second. Only failures nothing
@@ -132,7 +134,9 @@ Hazard: `h = m(t) · [w(t) + Σ_k A_k · o_k(t)]`.
   with the piece above it, or once half the wall behind it has gone.
 - **Only what wears loose warns:** its crack shows 3 s ahead and it shakes for
   the last 0.3 s. A piece a cascade or a blow brings down would show a warning
-  that began before the blow, and a whole cascade flashes.
+  that began before the blow, and a whole cascade flashes. Nor does a crack show
+  before the fall beside it that set the piece wearing loose: keep when its
+  exposure last changed, and start the crack no sooner.
 
 What held up in tuning, at ten minutes a year: η ≈ 13 h, β 1.6; about 10
 collapses over the first hours, ever further apart, each only 1–2 pieces deep.
@@ -182,6 +186,14 @@ least its turned half-depth off the face, or its spinning edge swings into the
 courses below. A body ending behind the wall hits the ground there and is gone;
 draw it into the view behind the gaps (`game-maker:depth-and-lod`).
 
+**Meeting in the air:** check each flight as it sets off against those in the
+air, each piece a turned rectangle in the wall's plane plus a span in depth
+(skip pairs whose swept boxes can't meet). Where two first overlap, or one sets
+off into another coming its way, knock both apart along the way they overlap
+least, keeping the heap's restitution, the lighter taking more, and fly each on
+from there. Cap the knocks per piece (a huddle of three knocks on for ever) and
+never knock one back into the wall beside it.
+
 **Landing:**
 
 - It hops once: normal restitution 0.3; along the floor, keep **0.4** of its
@@ -192,6 +204,10 @@ draw it into the view behind the gaps (`game-maker:depth-and-lod`).
 - **Rest onward:** pick the rest angle ahead in the direction it spins (the next
   face down that way). The nearest face down turns half the pieces back the way
   they came, and a drawing turned in steps flips back and forth.
+- **Off the edge, not over air.** When something settles first where a piece was
+  going, its new place may be lower and to the side: slide it at its height while
+  there is something under it, then down off the edge, speeding up. A straight
+  ease glides over the air beside what got there first.
 
 ## The heap
 
@@ -213,6 +229,9 @@ draw it into the view behind the gaps (`game-maker:depth-and-lod`).
   always upward, and move its recorded top with it. Snapped down, its bottom row
   is under the floor; its top not moved, it is not all under when sunk its full
   height.
+- **A tilted piece's top is its high corner.** Propped on something at one
+  end, a piece reaches above a flat one of its size; record that as its top, or
+  sunk its full height it still shows.
 - **Sinking without floating:** `sink_b = max(own(t), max over supports j of
 (sink_j(t) − sink_j(when b came to rest)))`. A piece rides down with what holds
   it up; it is gone when sunk its full height. Start sinking minutes after it
@@ -222,7 +241,8 @@ draw it into the view behind the gaps (`game-maker:depth-and-lod`).
 
 - **Odds** `0.04 + 0.55·smooth(fall/110) + 0.2·edge-on + 0.1·on rubble`, capped
   at 0.85, × the build's brittleness (concrete block 1, brick 0.4, natural stone
-  0.25).
+  0.25). Only pieces over a **share of the build's unit** break (about a sixth);
+  a size in pixels means small units never break.
 - **Cracks:** 1–2, mostly across the long axis, each wandering ±1 px a row and
   kept 2 px apart. Then 1–5 chips grown from the rim, 3–10 px each.
 - **Pieces:** split every label into 4-connected parts; anything cut off is a
@@ -241,7 +261,8 @@ draw it into the view behind the gaps (`game-maker:depth-and-lod`).
 - **When each goes:** the earlier of worn through (Weibull, sooner up the wall)
   or opened by a gap beside it (soon after that release).
 - **Drawing:** a darker rim where a coat ends. A falling piece keeps the plaster
-  it had when it left.
+  it had when it left, on its face only: its top and bottom are bare masonry
+  (give the painter a bed face of its own).
 
 ## Cues
 
@@ -298,7 +319,9 @@ function). What it found:
 - **Falls:** no pose jumps across phase boundaries (under 2 px, 0.25 rad);
   tipped pieces land turned within range; every body in flight is read at every
   frame.
-- **Heap:** nothing floats while sinking.
+- **Falls:** nothing passes through standing masonry while within the wall's
+  thickness; pieces in the air overlap no more than a pixel or two.
+- **Heap:** nothing floats while sinking; nothing at rest overlaps.
 - **Fracture:** the pieces are disjoint and connected, cover the mask exactly,
   and break more often the further they fell.
 - **Plaster:** all there at 0, less by 3 h than by 1 h, none in the end.

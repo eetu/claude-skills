@@ -140,6 +140,11 @@ change becomes a threshold against rank:
 
 ## Turning a whole painting over
 
+Something that must stay level on a painting turned over whole (a shelf fungus
+grown on a fallen trunk) is drawn **pre-turned back** about its own anchor, so
+the painting's turn leaves it level. At a quarter turn this is exact: a quarter
+turn moves whole pixels, `(dx, dy) → (dy, −dx)` back for `(−dy, dx)` forward.
+
 `pose.over = { about, angle, sunk, moss, gone, mosses }` rotates every posed
 pixel about a pivot on the ground, then shifts it down by `sunk`. Pixels below
 the pivot's ground line are not drawn.

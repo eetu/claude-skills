@@ -84,7 +84,8 @@ Oak has a dark, furrowed trunk, and its dead leaves stay into winter.
 - **Stems.** Excurrent kinds keep one leader. Kinds that spread fork it at their
   fork age: the trunk stops there and two to five stems carry the height on,
   leaning out and turning back up toward the light. Some kinds clump from the
-  ground.
+  ground. A stem has leaves at its top only while it grows there: a trunk that
+  has forked ends in the crotch, and every forked tree grows a tuft in it.
 - **Branches, year by year**, off every stem's new growth: a whorl at the year's
   node, or a few alternating along the year's shoot. Several stems share the
   light, so each takes `perYear / √stems`.
@@ -97,7 +98,10 @@ Oak has a dark, furrowed trunk, and its dead leaves stay into winter.
   branches, shaded, get a shorter cap; a conifer's lowest are its longest.
 - **Girth** comes from the age of the wood: width at height `z` is
   `girth·(A − ageAtHeight(z))^0.6`. The foot is thickest, the leader's tip 1 px,
-  and nothing is stored.
+  and nothing is stored. Where bark changes with age (a birch's white over a
+  brown shoot), blend the young shoot from the older bark over its first few
+  px where it grows on from wider wood along its stem; side twigs keep their own
+  colour from their base. A colour switched by width shows a hard line.
 - **The crown rises.** The live crown's share falls toward its floor:
   `CR(A) = crown + (1 − crown)·e^(−A/crownAge)`, its base at `H·(1 − CR)`. A
   branch dies when the base passes its node, or early, shaded out (a tenth or
@@ -246,6 +250,27 @@ rots }`.
   still while the tree grows on, and only where the scene shows it. Falling
   leaves come only from living broadleaves. A bird needs a branch in view; when
   its tree has none, it moves to the tallest that has.
+
+## Bracket fungi
+
+Old and dead wood grows conks, each kind on its hosts (in a boreal wood: tinder
+fungus and birch polypore on birch, chaga on living old birch, a red-belted
+conk on spruce and pine, a sulphur shelf on oak, a cushion on fruit trees).
+
+- **When:** from the last third of a tree's life; more once it is dead.
+  Perennials add a band a year and a pale growing rim in season; annuals come
+  each year in their season and wither through winter. All of it from the
+  wood's age (which runs on after death) and the time of year.
+- **Where:** low to mid trunk, mostly where a shed branch left a stub, out from
+  the wood's edge, side-on, at 3–12 px.
+- **Riding the tree:** paint each right after the wood it grows on, under the
+  same part, so it sways, goes over and rots with it.
+- **On a fallen log:** turned over with it at first, then grown level again (an
+  annual from its next coming, a perennial from its first new cap a year on),
+  seen from in front on the log's face. Drawn pre-turned against the log's turn
+  (`game-maker:posed-pixels`).
+- **Seed by kind too:** two host kinds with the same fungus on one seed would
+  otherwise bear the same ones.
 
 ## Tests worth having
 
