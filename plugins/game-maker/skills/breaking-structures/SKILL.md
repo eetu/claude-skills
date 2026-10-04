@@ -177,6 +177,11 @@ motion as closed-form phases (`ease`, `pivot`, `fly`), read by `poseAt(phases, t
   The sill counting only what stands, the piece above drops into the space of
   one still crawling out, and the two overlap: drawn per pixel by depth, they
   fight pixel by pixel, which reads as flicker.
+- **The mortar stays behind.** A body is its block less the joint pixels the
+  bond gave it, which crumble in the hole. A brick that takes its joint falls
+  with a strip of mortar along one side. Over the wall, that strip vanishes
+  against the wall's own joints and shows against its bricks, by turns, so even
+  a lone brick flickers all the way down.
 - **Topple**: it first tilts about its support corner in the plane.
 - **Fly**: ballistic at **real gravity** (392 px/s² at 40 px/m), spin constant
   until an impact. Find the landing by stepping 1/120 s **during the bake only**,

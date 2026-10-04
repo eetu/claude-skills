@@ -101,15 +101,31 @@ own pixel mask:
    by φ.
 2. A face is visible when its turned normal satisfies `n_z − K·n_y > 0`. Only
    those faces fill the rows they project to: the front, the back, the top and
-   the bottom bands. At most two show, and they don't overlap.
-3. Map each screen row back to a mask row for the face's texture.
+   the bottom bands. In a convex column at most two show; in a notched one the
+   top of the part below the notch is behind the face above it, so **keep the
+   nearer** of two faces on a row.
+3. A face fills **the rows whose middles it spans**, not every row its edges
+   touch, and takes its depth and texture row there. Rounding both edges and
+   filling inclusive paints an upright block one row taller than it was in the
+   wall, and puts the top band's front row on the wall's face instead of behind
+   it. Where the centre's row and a face's edge both fall on half a pixel,
+   round them opposite ways (centre half up, edge half down), or the column
+   comes out a row low.
 4. A small turn in the plane comes last, by inverse nearest-pixel sampling,
-   **about a centre rounded to a whole pixel**. Turned about a centre between
-   pixels, a body moving a fraction of a pixel a frame is sampled afresh every
-   frame, and its outline and grain shimmer. A turned stone moved a third of a
-   pixel a frame changed about 50 of its 300 pixels each frame. Rounded, its
-   turned image only moves, a whole pixel at a time. Test it: move a turned body
-   sub-pixel and check its shape, lined up by whole pixels, never changes.
+   **about a centre pinned to the pixel grid**: the body's left column and centre
+   row rounded, the same anchor its upright drawing uses. Turned about a centre
+   between pixels, a body moving a fraction of a pixel a frame is sampled afresh
+   every frame, and its outline and grain shimmer. A turned stone moved a third
+   of a pixel a frame changed about 50 of its 300 pixels each frame. Pinned, its
+   turned image only moves, a whole pixel at a time. With an anchor of its own, the
+   first turn step jumps an odd-sized body a pixel.
+
+Test it:
+
+- move a turned body sub-pixel and check its shape, lined up by whole pixels,
+  never changes;
+- drawn upright where it sat, a body covers exactly its own pixels;
+- turned one step, odd and even sizes alike, its middle stays within half a pixel.
 
 A slab lying flat then shows edge-on: its bed toward the viewer, a strip of its
 face on top, with no special case. Clip each body at the floor line in front of
