@@ -38,8 +38,8 @@ Pick per subject, not per game:
   for what should differ per seed or grow over time: trees, shrubs, moss,
   rubble, terrain.
 
-The two meet on one canvas at one pixel scale, so a sprite pixel and a brush
-pixel are the same size unless a subject is scaled on purpose (below).
+The two meet on one canvas at one pixel scale: a sprite pixel and a brush pixel
+are the same size.
 
 ## Where the art lives
 
@@ -162,13 +162,10 @@ is the game not drawing it.
   editor says how many palette entries that costs before you pay.
 - **Runtime turns** of procedural paintings belong to `game-maker:posed-pixels`;
   don't rotate a sprite canvas with `ctx.rotate`, it smears the pixels.
-- **One sprite pixel is one scene pixel.** Never scale a sprite up to make it
-  bigger: a 2× animal has pixels twice the scene's and breaks the detail level
-  everything else holds. A subject that should be bigger is drawn bigger in dab
-  at the same pixel size; one meant to read smaller or further away gets its own
-  smaller drawing (`game-maker:depth-and-lod`). Only the whole scene scales to
-  the display, by a whole number with `imageSmoothingEnabled = false`. Flipping
-  (`flip: "h"`) is fine.
+- **One sprite pixel is one scene pixel.** A subject that should be bigger is
+  drawn bigger in dab at the same pixel size, never scaled up; one meant to read
+  smaller or further away gets its own smaller drawing. Only the whole scene
+  scales (`game-maker:depth-and-lod`); flipping (`flip: "h"`) is fine.
 
 ## The format's authority
 
