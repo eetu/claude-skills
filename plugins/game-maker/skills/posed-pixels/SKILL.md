@@ -219,6 +219,13 @@ each turned pixel into it when painting the rubble layer.
   whole scene pixels, so a layer for clipping or shading (the wall's gaps, the
   night) can be `SCENE_W × SCENE_H` and drawn up through the context's transform.
   At 3× that is nine times fewer pixels per pass; on a large display, more.
+- **A canvas per layer per frame.** Never draw an offscreen canvas, refill it
+  (`putImageData`, `clearRect`, more drawing) and draw it again in the same
+  frame. Safari draws one canvas onto another lazily, so both draws can show
+  the second contents. A layer drawn first then blinks out on some frames.
+  Pixels read back from the canvas (`toDataURL`, headless Chromium captures)
+  never show this, so test in Safari when a blink can't be caught. A layer
+  redrawn with the same contents is harmless.
 
 ## Related
 
