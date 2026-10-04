@@ -60,7 +60,7 @@ frame.
 - **Settings in pixels or wall height, never in courses or pieces.** A setting
   counted in courses or pieces silently changes meaning when the pieces shrink:
   how hard the wall is to loosen, which part of the foot is sound, how deep a
-  collapse bites, what counts as a scrap, how big a piece must be to break.
+  collapse bites, what counts as a scrap.
 
 ## What stands
 
@@ -98,8 +98,7 @@ Hazard: `h = m(t) · [w(t) + Σ_k A_k · o_k(t)]`.
   `K_a·ln(1 + Δt/c_a)`); in a lead-up window before it, rising, so small falls
   cluster before a big one. No lead-up before the blast, nor before a collapse
   given as input: a blow can't loosen the wall before it is struck.
-- **Reach** `A_k = exp(−dist/40)`, dropping terms below 0.01; a collapse's
-  delay along its bite is each piece's distance from its nearest column.
+- **Reach** `A_k = exp(−dist/40)`, dropping terms below 0.01.
 - **Exposure** `m` is the course's resistance (top course 1, falling steeply
   downward) times the factors that apply, capped at about 12:
 
@@ -223,7 +222,7 @@ draw it into the view behind the gaps (`game-maker:depth-and-lod`).
 
 - **Odds** `0.04 + 0.55·smooth(fall/110) + 0.2·edge-on + 0.1·on rubble`, capped
   at 0.85, × the build's brittleness (concrete block 1, brick 0.4, natural stone
-  0.25), for pieces above a size set relative to the build's unit.
+  0.25).
 - **Cracks:** 1–2, mostly across the long axis, each wandering ±1 px a row and
   kept 2 px apart. Then 1–5 chips grown from the rim, 3–10 px each.
 - **Pieces:** split every label into 4-connected parts; anything cut off is a
@@ -298,9 +297,8 @@ function). What it found:
   or a roof brought down changes nothing before it** (`game-maker:world-clock`).
 - **Falls:** no pose jumps across phase boundaries (under 2 px, 0.25 rad);
   tipped pieces land turned within range; every body in flight is read at every
-  frame; nothing passes through standing masonry; no two bodies at rest overlap.
-- **Heap:** nothing floats while sinking; a piece sunk its full height draws
-  nothing.
+  frame.
+- **Heap:** nothing floats while sinking.
 - **Fracture:** the pieces are disjoint and connected, cover the mask exactly,
   and break more often the further they fell.
 - **Plaster:** all there at 0, less by 3 h than by 1 h, none in the end.
