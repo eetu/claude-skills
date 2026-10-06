@@ -128,6 +128,12 @@ Then it is hand-edited in dab. **Fold the edits back into the generator**
 before running it again, or the run erases them; `diff` from the generated
 version lists them.
 
+The deer's is nahkarele's `scripts/deer.py`, written into the file by
+`scripts/deer.mjs` through `@anarkisti/dab/core`. It keeps the file's palettes,
+variants and animations, and `--check` counts the pixels apart in every
+colourway; it is folded back when that reads 0. Copy that pair for the next
+generated sprite.
+
 ## Reading sprites in a game
 
 - **`@anarkisti/dab/core`** (pure, no dependencies) reads what the editor
