@@ -30,8 +30,8 @@ plugins/
       wind-and-springs/              wind, damped springs, rigs, falls
       procedural-plants/             trees, shrubs, climbers, grass, moss
       pixel-brushes/                 painting primitives, texture, palettes
-      sky-and-weather/               seasons, days, sun, moon, weather
-      depth-and-lod/                 layering, distance, level of detail
+      sky-and-weather/               seasons, days, sun, moon, weather, light
+      depth-and-lod/                 true depth, distance, level of detail
       breaking-structures/           masonry that wears, breaks, falls and piles
       game-workbench/                bench, shuttle, screenshots, perf
 ```
