@@ -1,8 +1,8 @@
 //! Integration harness: spawns the real `<app>-backend` binary with `DEV_AUTH=1`
 //! against a temp SQLite + stub dist/, polls `/status` until up, exposes a
-//! `reqwest` client, and kills the child on `Drop`. Lives in the `e2e` crate's
-//! `src/lib.rs`; tests under `e2e/tests/*.rs` are `#[ignore]` (they spawn a
-//! process + bind a port) — run with `cargo test -p <app>-e2e -- --ignored`.
+//! `reqwest` client, and kills the child on `Drop`. Lives in the `integration` crate's
+//! `src/lib.rs`; tests under `integration/tests/*.rs` are `#[ignore]` (they spawn a
+//! process + bind a port) — run with `cargo test -p <app>-integration -- --ignored`.
 //! Replace every `<app>` / `<APP>` placeholder.
 
 use std::net::TcpListener;
@@ -121,12 +121,12 @@ fn bin_path() -> PathBuf {
     p.join("<app>-backend")
 }
 
-// A test lives in e2e/tests/api.rs:
+// A test lives in integration/tests/api.rs:
 //
 //   #[tokio::test]
 //   #[ignore = "spawns the backend binary"]
 //   async fn status_is_up() {
-//       let stack = <app>_e2e::Stack::start().await.unwrap();
+//       let stack = <app>_integration::Stack::start().await.unwrap();
 //       let body = stack.get_json("/status").await;
 //       assert_eq!(body["service"], "<app>");
 //   }

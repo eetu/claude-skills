@@ -1,14 +1,14 @@
 ---
 name: ts-style
-description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/eslint-config (npm package). Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, comment discipline (the final model, never the iteration journey), and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
+description: TypeScript/JavaScript house code style for eetu's projects — enforced by the shared @anarkisti/biome-config (libraries, node, plain web, React) or @anarkisti/eslint-config (Svelte apps) npm packages. Covers the conventions that aren't auto-fixable: named function declarations for components vs const-arrow for callbacks, type over interface, inline type imports, default-export-per-component, nullish/optional-chaining, comment discipline (the final model, never the iteration journey), and how import sorting + formatting are delegated to tooling. Use when writing or reviewing any TS/JS in any project (frontend, node, scripts) — not tied to any framework or app stack.
 user-invocable: true
 ---
 
 > **Priors, not rails.** These are the current house conventions, enforced by
-> `eslint-config`. They keep diffs boring and code uniform. If a convention
-> actively fights a better pattern (new language feature, a rule that's aged
-> out), propose the change _to the eslint-config repo_ so the whole fleet moves
-> together — don't silently diverge in one project.
+> `biome-config` or `eslint-config`. They keep diffs boring and code uniform. If
+> a convention actively fights a better pattern (new language feature, a rule
+> that's aged out), propose the change _to the shared config's repo_ so the whole
+> fleet moves together — don't silently diverge in one project.
 
 # ts-style
 
@@ -43,6 +43,35 @@ the Dockerfile's node stage.
 
 ## Tooling does the mechanical work — don't hand-fight it
 
+Two shared configs, one per kind of project; both are published npm packages:
+
+| Project                                | Config                                         |
+| -------------------------------------- | ---------------------------------------------- |
+| library, node, plain web, React        | `@anarkisti/biome-config` (`/react` for React) |
+| Svelte app, and apps already on eslint | `@anarkisti/eslint-config`                     |
+
+### Biome (`@anarkisti/biome-config`)
+
+`yarn add -D @anarkisti/biome-config @biomejs/biome`, then a `biome.json` beside
+`package.json`: `{ "extends": ["@anarkisti/biome-config"] }` (or `/react`).
+Scripts: `"lint": "biome check ."`, `"lint:fix": "biome check --write ."` —
+formatting, linting and import order in one pass, so there is no separate
+`format` script. The preset formats in Prettier's style (2 spaces, double quotes,
+semicolons, trailing commas, 100 columns), sorts imports (type-only imports
+become `import type`, mixed ones keep inline `type` specifiers), errors on unused
+imports and warns on unused variables (`_`-prefixed ones are ignored).
+
+- **Biome doesn't depend on the `typescript` package**, so it never holds back a
+  TypeScript upgrade. typescript-eslint pins a TS peer range; a project on a new
+  TS major (korpi is on TS 7) can't wait for it.
+- An `extends` inside an extended config is not applied, so a preset is
+  self-contained. The presets leave `vcs` off: list exclusions in
+  `files.includes` (`["**", "!dist", "!.yarn"]`).
+- Project rules go in `overrides` in the project's `biome.json` (korpi denies
+  `document`/`window` globals in library code there).
+
+### eslint (`@anarkisti/eslint-config`)
+
 Style is enforced by **`@anarkisti/eslint-config`** — the published npm package
 (`"@anarkisti/eslint-config": "^X.Y.Z"`), **not** the legacy
 `github:eetu/eslint-config` git dep (those tags are gone, and consuming it as a
@@ -72,12 +101,14 @@ router). Scripts: `lint`, `lint:fix`, `format`, `format:fix`, `typecheck`
 
 The general posture lives in **lint-format**: tooling always present, defaults
 unless overridden, `validate` clean before landing, fix-or-disable-with-reason.
-Here that floor is concrete: TS/JS tooling is **pinned by `eslint-config`**
-(eslint + prettier, versions locked) — that's the project rule that overrides
-"community default", so use it, don't bring your own. When you must disable,
-scoped `// eslint-disable-next-line <rule> -- reason`; recurring disables mean
-the rule is mis-tuned — fix it in `eslint-config` (per the priors note above),
-not per-project.
+Here that floor is concrete: TS/JS tooling is **pinned by the shared config**
+(`biome-config` or `eslint-config`, per the table above) — that's the project
+rule that overrides "community default", so use one of them, don't bring your
+own. When you must disable, scope it with a reason:
+`// biome-ignore lint/<group>/<rule>: reason` or
+`// eslint-disable-next-line <rule> -- reason`. Recurring disables mean the rule
+is mis-tuned — fix it in the shared config (per the priors note above), not
+per-project.
 
 ## The conventions tooling can't enforce
 
@@ -125,6 +156,7 @@ the code got here, so:
 
 ## Reference
 
-Live examples (if cloned): a sibling app's `frontend/src/components/*.tsx` and
-`frontend/src/api.ts`. The eslint-config source: the `eslint-config` repo's
-`{node,react}.js`.
+Live examples (if cloned): `korpi` (a Biome library on TS 7), `dice`'s
+`frontend/` (SvelteKit on eslint-config). The configs' sources: the
+`biome-config` repo's `{base,react}.json`, the `eslint-config` repo's
+`{node,react,svelte,web}.js`.

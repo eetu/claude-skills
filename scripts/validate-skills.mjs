@@ -3,6 +3,7 @@
 //   1. every *.json parses
 //   2. every SKILL.md has YAML frontmatter with non-empty `name` + `description`
 //   3. a skill's frontmatter `name` matches its directory name
+//   4. a description fits the skill spec's 1024 characters
 // Zero deps — string parsing is enough for our flat frontmatter.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -10,6 +11,7 @@ import { join, basename, dirname, relative } from "node:path";
 
 const root = process.cwd();
 const errors = [];
+const MAX_DESCRIPTION = 1024;
 
 /** Recursively collect files, skipping node_modules/.git. */
 function walk(dir, out = []) {
@@ -51,6 +53,11 @@ for (const f of files.filter((f) => basename(f) === "SKILL.md")) {
 
   if (!name) errors.push(`${rel}: frontmatter missing \`name\``);
   if (!description) errors.push(`${rel}: frontmatter missing \`description\``);
+  if (description && description.length > MAX_DESCRIPTION) {
+    errors.push(
+      `${rel}: description is ${description.length} characters, over ${MAX_DESCRIPTION}`,
+    );
+  }
 
   const dir = basename(dirname(f));
   if (name && name !== dir) {

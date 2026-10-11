@@ -124,14 +124,23 @@ apps that render diagrams client-side pick light/dark at
 `mermaid.initialize` time. Derived from `colors_and_type.css` — when a token
 moves there, move it in the Mermaid asset too.
 
-## Two ways to apply
+## Three ways to apply
 
 **A. Static HTML** (mockups, docs pages, prototypes): `<link>` or inline
 `colors_and_type.css`, use the `--halo-*` vars and `.halo-card` /
 `.halo-wordmark` primitives directly. Don't re-derive tokens by hand — that's
 how an app once drifted to its own names; copy the canonical file.
 
-**B. React production** (the sibling-app stack): tokens live in
+**B. Svelte** (the default for new apps): copy `colors_and_type.css` verbatim to
+`src/lib/styles/halo.css` and import it once in the root `+layout.svelte`;
+components read the `--halo-*` vars in their scoped `<style>` blocks. Self-host
+the fonts (`@fontsource/inter`, `@fontsource/space-grotesk`, the weights the
+tokens use) so the CSP stays same-origin and the app works offline on the LAN.
+A theme setting writes the resolved `light`/`dark` to `<html data-theme>`, which
+the tokens key off; without it they follow `prefers-color-scheme`. The wordmark
+is a `Wordmark.svelte`. `dice` is the live example.
+
+**C. React** (legacy, existing apps only): tokens live in
 `frontend/src/themes.ts` as a typed Emotion `Theme`; components call
 `useTheme()` and style via the `css={{}}` prop (CSS-in-JS — **not** tailwind /
 CSS-modules). Here `themes.ts` **is** the in-repo source of truth — `css`-prop
@@ -158,7 +167,8 @@ one cleanly. A per-app skill should be **thin**:
    `colors_and_type.css` verbatim. Below is this app's delta."
 3. The four deltas only: glyph SVG, wordmark text, layout/density, voice.
 4. A short "Differences from the family baseline" table.
-5. Point at the production source-of-truth files
-   (`frontend/src/components/`, `themes.ts`, `Wordmark.tsx`).
+5. Point at the production source-of-truth files (`Wordmark.svelte` and
+   `src/lib/styles/halo.css`; in a legacy React app `themes.ts` and
+   `Wordmark.tsx`).
 
 Copy an existing per-app skill as a template and swap the four deltas.
