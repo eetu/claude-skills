@@ -1,5 +1,5 @@
 # Single-service CI. frontend job (vendored yarn) + backend job (whole rust
-# workspace). Add an `e2e` job if there's an e2e crate; add a job per non-Rust
+# workspace). Add an `integration` job if there's an integration crate; add a job per non-Rust
 # sidecar in its own toolchain (e.g. astral-sh/setup-uv → uv sync --frozen →
 # ruff check src).
 #

@@ -6,7 +6,7 @@
 resolver = "2"
 members = [
     "backend",
-    "e2e",
+    "integration",
     # "<worker>",   # optional: another service crate, same shape
 ]
 
@@ -42,7 +42,7 @@ rusqlite = { version = "0.40", features = ["bundled"] }   # omit if stateless
 # subtle = "2"          # constant-time compare for service-to-service tokens
 
 [workspace.dependencies.tempfile]
-version = "3"           # dev-dep: temp SQLite + temp dist/ in the e2e harness
+version = "3"           # dev-dep: temp SQLite + temp dist/ in the integration harness
 
 [workspace.dependencies.wiremock]
 version = "0.6"         # dev-dep: stub HTTP upstreams for a fan-in app

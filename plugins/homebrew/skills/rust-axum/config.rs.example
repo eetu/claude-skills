@@ -13,7 +13,7 @@ pub struct Config {
     pub bind: String,
     /// When set, `/api/*` is reachable without forward-auth headers. Enabled by
     /// `DEV_AUTH=1` (local dev) or `<APP>_OPEN=1` (a LAN-only deploy with no
-    /// oauth2-proxy in front). The linchpin of dev + e2e; see [`crate::auth`].
+    /// oauth2-proxy in front). The linchpin of dev + integration; see [`crate::auth`].
     pub dev_auth: bool,
     /// SQLite cache/state file. `<APP>_DB_PATH`. (Drop this field + db.rs if the
     /// app is stateless.)

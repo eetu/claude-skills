@@ -23,7 +23,7 @@ user-invocable: true
    maps `/api` and `/status` → the backend bind (`http://localhost:3010`). No
    CORS locally; same-origin in prod. **`/auth` is the oauth2-proxy EDGE route,
    not a backend route** — don't proxy it and don't add a backend `/auth`
-   handler; locally `PARTY_OPEN=1` / `DEV_AUTH` bypass forward-auth. See
+   handler; locally `<APP>_OPEN=1` / `DEV_AUTH` bypass forward-auth. See
    `vite.config.ts.example`.
 3. **Styling from `halo-design`.** Use the canonical `--halo-*` tokens. How
    they're sourced is framework-specific (and the app's `CLAUDE.md` is
@@ -51,8 +51,9 @@ user-invocable: true
    `.yarn/releases`). **Bump** = re-run `set version <newer> --yarn-path` then
    refresh the lockfile with a plain `yarn install` (the bump fails `--immutable`
    until the lock is regenerated); dependabot won't touch the vendored binary.
-   Local dev keeps a corepack `yarn` shim that transparently delegates to the
-   vendored release, so hooks/CLI still just call `yarn`. CI installs
+   Locally any `yarn` on the PATH defers to `yarnPath` (and the dotfiles' fish
+   `yarn` function runs the vendored release through node directly), so hooks
+   and the CLI still just call `yarn`. CI installs
    `--immutable`.
    **Node** is pinned separately in a `.node-version` file at the frontend root
    (e.g. `26`) — the single source of truth. CI's `setup-node` reads it via
@@ -266,7 +267,7 @@ failed lazy-chunk imports. Have the SPA notice a new build and reload itself.
   and poll-and-compare against the running build; reload on change. Same caveat —
   key it off a per-build id, not the semver.
 
-## React instantiation (current default — verified across the family)
+## React instantiation (legacy — existing apps only)
 
 - React + Vite + `@vitejs/plugin-react` + `babel-plugin-react-compiler` (latest).
 - **Styling:** `@emotion/react` (CSS-in-JS) — a typed `Theme` in
