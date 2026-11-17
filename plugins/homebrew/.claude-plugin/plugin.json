@@ -1,5 +1,7 @@
 {
   "name": "homebrew",
-  "description": "House patterns for self-hosted homebrew web apps — shared design language (halo-design), its interaction counterpart (halo-interaction), the Rust(axum)+React sibling-app bootstrap, and the Python (FastAPI) escape hatch (python-service) for hardware/vendor libs.",
-  "author": { "name": "Eetu Sutinen" }
+  "description": "House patterns for self-hosted homebrew web apps: the shared look (halo-design) and how its tools behave (halo-interaction), the SvelteKit SPA (spa-frontend), the Rust axum backend (rust-axum), the Python escape hatch for hardware/vendor libs (python-service), and the assembly + deploy orchestrator (sibling-app), static nginx SPAs included.",
+  "author": {
+    "name": "Eetu Sutinen"
+  }
 }

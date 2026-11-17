@@ -1,6 +1,6 @@
 ---
 name: game-workbench
-description: The dev loop for a small pixel world that is a function of time and seed. `@anarkisti/korpi/bench` implements the workbench (`mountBench(node, { units })` in plain DOM: each unit alone with live controls, a grid of seeds, a depth overlay, drag to pan; `simClock` for simulator units; `timeDraws` for frame time), `@anarkisti/korpi/clock` the shuttle's `rateOf`, and `@anarkisti/korpi/testing` raster `fingerprint`s; nahkarele's `/workbench` is a Svelte bench over the same shape. This skill is how to use them and the practice around them — pieces that draw themselves, simulator units that play, poke and retune a baked world, a time shuttle that runs the world ahead or back at up to 200×, Playwright scripts that warp to a moment and screenshot it, ImageMagick montages, fingerprints that prove a refactor changed nothing, and frame time measured against a baseline in a git worktree. Use when setting up dev tooling for a canvas game or simulation, adding a piece that should be inspectable on its own, checking a change visually at a time that takes hours to reach, proving a move or refactor is behaviour-preserving, or measuring whether a feature made frames slower.
+description: The dev loop for a small pixel world that is a function of time and seed. `@anarkisti/korpi/bench` implements the workbench (`mountBench`: each unit alone with live controls, a grid of seeds, a depth overlay; `simClock` for simulator units; `timeDraws`), `clock` the shuttle's `rateOf`, `testing` raster `fingerprint`s; nahkarele's `/workbench` has the same shape. This skill is how to use them and the practice around them — pieces that draw themselves, simulator units, a time shuttle at up to 200×, Playwright screenshots at a moment, montages, fingerprints that prove a refactor changed nothing, and performance: a timer per pass, the browser frame bench and its cost table, Safari as the reference, a PERF.md row per change, baselines in a git worktree. Use when setting up dev tooling for a canvas game, making a piece inspectable alone, checking a change at a time that takes hours to reach, proving a refactor is behaviour-preserving, or finding why frames got slower.
 user-invocable: true
 ---
 
@@ -185,6 +185,45 @@ every machine; a changed fingerprint is a minor version in 0.x.
   current state timed whatever screen it was on and reported 0.4 ms for a 4 ms
   scene. A number that drops tenfold without a reason is a harness bug until
   shown otherwise.
+
+## Performance discipline
+
+Measure each pass before guessing: a frame's cost hides in pieces, and the
+piece everyone suspects is rarely the one.
+
+- **A lap per pass.** A unit's draw marks its passes with `stage.lap(name)`;
+  the bench readout (`i` in korpi's `yarn dev`) shows each pass's mean and
+  slowest over the last second, costliest first. That is the number to trust.
+- **The frame bench** (`yarn bench:frame`) plays the scenes a unit names
+  (`Unit.scenes`: waits, values, taps, drags) in headless Chromium on the CPU
+  and the GPU, writes each pass's mean, p95 and slowest into `costs.json`, and
+  regenerates the README's cost table from it (`scripts/costs.mjs`). `-t` picks
+  a scene; `bench:frame:heavy` adds the big loads.
+- **Safari is the reference**: the user looks there, and it differs. Its
+  `performance.now()` is whole milliseconds unless the page is cross-origin
+  isolated (COOP + COEP: 20 µs), so `bench:frame:safari` serves isolated pages
+  through safaridriver, with the display kept awake (`caffeinate`; asleep,
+  Safari throttles five times over). Playwright's WebKit is no stand-in: a
+  development build whose compiler trips assertions real Safari doesn't.
+- **Node** (`yarn bench`, `node --cpu-prof`) is for profiles and iteration. It
+  misleads by a ms or two and on which part dominates, and pins inlined code on
+  the wrong function; confirm in the browser.
+- **A PERF.md row per perf change**: what changed, before → after, how it was
+  measured (which bench, which browser, which machine), the commit. What was
+  tried and didn't help gets its own table, so nobody tries it again.
+
+What the rows have taught, true beyond korpi:
+
+- Allocation in a hot loop costs more than its arithmetic: array
+  destructuring, closures, rest arguments, `Object.assign` with a literal.
+  Plain arithmetic on locals; draw what is fixed once and keep it.
+- A pass over every pixel grows with the screen (2–3 ms at 1000×800). Prefer
+  passes over what is drawn.
+- Safari can run a tight loop five times slower than Chromium inside a big
+  function and at full speed as a small function of its own. Only the Safari
+  frame bench shows it; a test calling the function alone runs fast.
+- What changes in steps is painted once a step; closed-form motion can be read
+  at a lower rate and mixed, staying a function of time.
 
 ## The gate
 

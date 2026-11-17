@@ -17,7 +17,7 @@ while IFS= read -r f; do
 		frontend/* | package.json | yarn.lock | .yarnrc.yml) run_front=1 ;;
 	esac
 	case "$f" in
-		backend/* | shared/* | e2e/* | Cargo.toml | Cargo.lock) run_rust=1 ;;
+		backend/* | shared/* | integration/* | Cargo.toml | Cargo.lock) run_rust=1 ;;
 	esac
 	# Add a branch per extra Rust crate / non-Rust sidecar, e.g.:
 	# case "$f" in <worker>/* ) run_rust=1 ;; esac

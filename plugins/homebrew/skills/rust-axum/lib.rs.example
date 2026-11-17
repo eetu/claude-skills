@@ -208,7 +208,7 @@ fn sha256_base64(body: &str) -> String {
 /// handler. The app sits behind oauth2-proxy forward-auth on the Pi; the binary
 /// only asserts the edge vouched via `X-Auth-Request-User` (401 if absent —
 /// defence in depth). Bypassed by `cfg.dev_auth` (`DEV_AUTH=1` / `<APP>_OPEN=1`),
-/// which is how dev + the e2e harness reach `/api/*`. `/status` stays unauth.
+/// which is how dev + the integration harness reach `/api/*`. `/status` stays unauth.
 const HDR_USER: &str = "x-auth-request-user";
 
 pub struct Auth;

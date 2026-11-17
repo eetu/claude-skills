@@ -10,12 +10,12 @@
     {
       "name": "coding-style",
       "source": "./plugins/coding-style",
-      "description": "Cross-domain code + environment conventions, independent of any app stack: lint-format (language-agnostic tooling floor), brevity (a line must inform or go), ts-style (TypeScript/JavaScript house style), svelte (Svelte + SvelteKit style), and fish (Eetu's default shell)."
+      "description": "Cross-domain code + environment conventions, independent of any app stack: lint-format (language-agnostic tooling floor), brevity (a line must inform or go — comments, commits, PRs; plus which anti-verbosity rules are model-version debt), no-iteration-narration (comments describe the final model, not the path), ts-style (TS/JS house style on Biome or eslint), svelte (Svelte + SvelteKit style), npm-release (versioning and publishing the npm libraries), and fish (Eetu's default shell — gotchas, and bash -c one-liners for anything handed over)."
     },
     {
       "name": "homebrew",
       "source": "./plugins/homebrew",
-      "description": "House patterns for self-hosted homebrew web apps: shared look (halo-design), frontend (spa-frontend), backend (rust-axum), and the assembly+deploy orchestrator (sibling-app)."
+      "description": "House patterns for self-hosted homebrew web apps: the shared look (halo-design) and how its tools behave (halo-interaction), the SvelteKit SPA (spa-frontend), the Rust axum backend (rust-axum), the Python escape hatch for hardware/vendor libs (python-service), and the assembly + deploy orchestrator (sibling-app), static nginx SPAs included."
     },
     {
       "name": "diagnosis",

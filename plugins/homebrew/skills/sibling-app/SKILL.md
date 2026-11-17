@@ -25,7 +25,8 @@ A sibling app = a Rust (axum) binary that **embeds a Vite SPA**, ships to
 (`../raspi`, a pyinfra project) as a Podman quadlet behind Traefik +
 oauth2-proxy. Usually that's **one** binary in **one**
 container; some apps add extra service binaries or a non-Rust sidecar, each its
-own image (see "Multi-service & polyglot").
+own image (see "Multi-service & polyglot"). An app with no server-side state
+needs no backend at all (see "Static variant").
 
 This skill is the index. The pieces live in their own skills:
 
@@ -134,6 +135,40 @@ compat-API service, and a Python `shim` wrapping a vendor SDK.
 - **Deploy:** one `../raspi` quadlet per service (one task file per image);
   co-locate on the Pi over loopback or split across LAN hosts.
 
+## Static variant (no backend)
+
+A page with no server-side state (a game, a toy, a generator; `nahkarele`, `logo`)
+is just the SPA in an nginx image. Skip `rust-axum` and the seam; everything else
+(halo-design, spa-frontend, ts-style, hooks, CI, dependabot, the image workflow)
+applies unchanged.
+
+- **Layout:** the SPA _is_ the repo root (`package.json`, `src/`, `.node-version`,
+  vendored `.yarn/releases`), plus `Dockerfile`, `default.conf` and an optional
+  `docker/` of entrypoint scripts. No `frontend/` subdirectory.
+- **Dockerfile:** `node:<v>-alpine` build stage (vendored yarn, `install
+--immutable`, `build`) → `nginxinc/nginx-unprivileged:alpine`, `default.conf`
+  into `conf.d/`, `dist/` into `/usr/share/nginx/html`, `EXPOSE 8080`. Rootless
+  on 8080, so it runs under rootless podman and restrictive kube security
+  contexts.
+- **`default.conf`:** SPA fallback (`try_files $uri $uri/ /index.html`);
+  `Cache-Control: public, max-age=31536000, immutable` on the hashed build
+  output (`/_app/immutable/` for SvelteKit, `/assets/` for plain Vite);
+  `no-cache` on `index.html` (and SvelteKit's `/_app/version.json`), or an open
+  tab never sees a deploy; `default_type application/manifest+json` for
+  `/manifest.webmanifest`, which nginx's stock `mime.types` lacks.
+- **Runtime config by entrypoint script**, not a rebuild: the nginx image runs
+  every `/docker-entrypoint.d/*.sh` at start (`COPY --chmod=755`). A script
+  writes a `conf.d/*.conf` with `sub_filter` to rewrite the HTML (set
+  `sub_filter_once off` in `default.conf`), e.g. absolute canonical/Open Graph
+  URLs from `SITE_URL`.
+- **Optional Liwan analytics** (`docker/40-liwan-tracker.sh` in `nahkarele`):
+  with `LIWAN_SCRIPT_URL` + `LIWAN_ENTITY` set, nginx injects the tracker before
+  `</head>`; unset, the page is served untouched. A bad value logs and disables
+  tracking, never stops nginx. Half a configuration is an error, not a choice.
+- **CI:** one job (lint, format, typecheck, test, build); no path filter or
+  `ci-gate` needed with a single job. dependabot covers npm at `/`, docker and
+  github-actions.
+
 ## Scaffold order
 
 1. Workspace `Cargo.toml` (from the canonical `Cargo.toml.example` shipped in the
@@ -208,8 +243,8 @@ frontend/.node-version` → yarn install --immutable → lint, format,
   typecheck, build) + `backend` job (`dtolnay/rust-toolchain@stable` with the
   `clippy, rustfmt` components, `Swatinem/rust-cache@v2`, clippy `-D warnings`,
   `cargo fmt --all -- --check`, `cargo test`, build --release; one job covers the
-  whole Rust workspace). Add `e2e` job if there's an e2e
-  crate. Each non-Rust sidecar gets its own job in its toolchain (e.g. a Python
+  whole Rust workspace). Add an `integration` job if there's an
+  integration crate (`cargo test -p <app>-integration -- --ignored`). Each non-Rust sidecar gets its own job in its toolchain (e.g. a Python
   one: `astral-sh/setup-uv` → `uv sync --frozen` → `ruff check src`).
 - **`dockerimage.yaml`:** `dorny/paths-filter` gate → QEMU + buildx → ghcr login
   → `docker/metadata-action` (tags: `type=ref,event=branch` for `:main`, semver
@@ -317,29 +352,38 @@ the wiring + edges; a few e2e golden paths (slowest, flakiest) on a slower caden
 ## raspi deploy wiring (in `../raspi`, per its CLAUDE.md "Adding a new service")
 
 > **HARD PREREQUISITE: this phase requires the existing `../raspi` pyinfra repo
-> checked out beside this one.** It edits files _in that repo_ (`all.py`,
+> checked out beside this one.** It edits files _in that repo_ (`group_data/*.py`,
 > `tasks/*.py`). If `../raspi` is absent, deploy is **out of scope** for a
 > standalone app — stop here, ship the image to GHCR, and do NOT invent raspi
-> files (`tasks/<name>.py`, `all.py` entries) from scratch; they only make sense
+> files (`tasks/<name>.py`, `group_data` entries) from scratch; they only make sense
 > as edits to the real repo.
 
-- `all.py` + `all.example.py`: service dict (host `127.0.0.1`, port, `url_prefix`,
-  image, `public:` flag, `MemoryMax`, `MALLOC_ARENA_MAX=2`).
+raspi's checklist is the source of truth; this is its shape, so the plan is right
+before you open it.
+
+- `group_data/all.example.py` + `group_data/all.py` (mirrored verbatim; it holds
+  no secret values): service dict (host `127.0.0.1`, port, `url_prefix`, image,
+  optional `"public_dns": True`).
 - `tasks/<name>.py`: quadlet — **copy an existing service's task**
   (`tasks/<existing>.py`) (`Network=host`, AutoUpdate/Pull for `:main`,
-  `optional()` + cleanup branch).
+  `optional()` + cleanup branch, `MemoryMax`, `MALLOC_ARENA_MAX=2` for glibc
+  allocators).
 - `tasks/traefik.py`: add `(name, DICT, "<prefix>")` to `ROUTES`; if human-gated,
   append the route name to **`_gated_hosts`** (there is **no** `OAUTH2_GATED_HOSTS`
   var — that's a common mistake).
 - `tasks/secrets.py` env write + a `vault.py` helper if it needs secrets.
-- `_SUBDOMAIN_NAMES` in `all.py` — the **dict name** (e.g. `<APP_NAME>`),
-  not the subdomain string.
+- `_SUBDOMAIN_NAMES` in `group_data/all.py` — the **dict name** (e.g.
+  `<APP_NAME>`), not the subdomain string. `public_dns` only puts the name in
+  public DNS (pointing at the LAN IP); reaching it from the internet takes
+  `TRAEFIK["public_hosts"]`, which an app almost never wants.
 - `tasks/network_restrict.py` `RESTRICTED` if LAN-only.
-- `RESTIC["paths"]` only if stateful. `deploy.py` include after dependencies.
-- Create the Bitwarden item before deploy.
+- `RESTIC["paths"]` only if stateful.
+- `group_data/features.py`: `("<name>", "apps")` in `DEPLOY` (order is
+  load-bearing: after its dependencies).
+- Create the item in the `raspi` 1Password vault before deploy.
 
 ## Verified stack values
 
-Live in the leaf skills (`rust-axum` deps, `spa-frontend` React stack,
-`ts-style` eslint-config). Always cross-check a sibling app before copying —
+Live in the leaf skills (`rust-axum` deps, `spa-frontend` Svelte stack,
+`ts-style` lint config). Always cross-check a sibling app before copying —
 versions move; prefer the latest.

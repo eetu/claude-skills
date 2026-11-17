@@ -78,19 +78,20 @@ Heredocs, `export`, process substitution `<(...)`, `${VAR:-default}`, C-style
 `for ((;;))`, arrays, and most copy-pasted install scripts assume bash. Don't
 port them line-by-line — run them in bash:
 
-```fish
+```sh
 bash -c 'set -euo pipefail; for i in 1 2 3; do echo "$i"; done'
-bash <<'EOF'
-  cat <<INNER > /tmp/x
-  heredoc content
-  INNER
-EOF
 ```
 
-Rule of thumb: **authoring a fish-native command → mind §1–5; pasting an existing
-bash/POSIX script → `bash -c` it** instead of translating. For setup docs aimed
-at Eetu, prefer fish syntax (`set -gx` not `export`) or explicitly say "run under
-bash".
+**A command handed to Eetu is always this form**: POSIX inside `bash -c '...'`,
+one physical line of at most ~90 characters. His `!` prompt and paste targets
+are zsh/sh, not fish, so fish syntax breaks there just as bash breaks here, and
+`bash -c` runs the same under all three. A plain single command (`git status`)
+needs no wrapper. Anything longer than a line goes in a script file, run by a
+one-line command (a heredoc pasted from a terminal arrives as broken fragments).
+The global `runnable-commands` rule is the authority on this.
+
+fish syntax (§1–5) matters for what runs in the fish session itself, e.g. the
+Bash tool, and for `~/.config/fish` files.
 
 ## Committed scripts are POSIX, not fish
 
@@ -105,6 +106,5 @@ don't emit fish-syntax `.sh` files.
 ## Note for setup/installer instructions
 
 Upstream "run this" snippets (`export X=…`, `curl … | bash`, `VAR=… ./script`)
-are bash. Either tell the user to run them in `bash`, or translate the env-var
-and grouping parts to fish. The `curl … | bash` form is already fine (it pipes
-into bash explicitly).
+are bash: hand them over wrapped in `bash -c '...'` rather than translated to
+fish. The `curl … | bash` form is already fine (it pipes into bash explicitly).

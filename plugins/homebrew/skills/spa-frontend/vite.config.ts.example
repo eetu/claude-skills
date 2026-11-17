@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     // The backend listens on :3010 (<APP>_BIND default). Proxy only its real
     // routes. NOTE: /auth is the oauth2-proxy EDGE route, NOT a backend route —
-    // don't add a backend /auth handler; locally PARTY_OPEN=1 / DEV_AUTH bypass
+    // don't add a backend /auth handler; locally <APP>_OPEN=1 / DEV_AUTH bypass
     // forward-auth so you never hit it in dev.
     proxy: {
       "/api": "http://localhost:3010",

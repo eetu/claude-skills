@@ -123,6 +123,21 @@ As of Claude Opus 5 (September 2026):
   system prompt rather than arriving as one more user-turn line competing with
   everything else already said.
 
+Re-checked for Claude Opus 5.5 (October 2026), against the
+[Opus 5.5 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5):
+
+- **The Opus 5 rules carry over.** "Existing Claude Opus 5 prompts should
+  perform well without changes." The guide withdraws nothing above, so keep the
+  rules and run the deletion test below on 5.5.
+- **It already says less.** Opus 5.5 "tends to finish the same task with fewer
+  tokens", and its reports "say plainly what it did, what it found, and what it
+  needs from you". That makes the length rules the likeliest to fail the
+  deletion test.
+- **Fable 5.1 goes the other way** in agentic work: it writes fewer progress
+  updates, and its guide says to remove instructions that keep that text brief.
+  On Fable, scope brevity rules to files and final summaries, not progress
+  notes.
+
 What to delete on the next upgrade: any rule here that the model observably
 follows unprompted. Test it by removing the rule and watching one real task,
 not by reasoning about whether it should still be needed.

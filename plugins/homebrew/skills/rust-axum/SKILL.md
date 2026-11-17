@@ -9,7 +9,7 @@ user-invocable: true
 > moves — if a newer approach is clearly better for a given app (e.g. a real
 > connection pool when concurrency demands it, or dropping the DB entirely when
 > stateless), take it and note why. The shipped `*.example` files
-> (`config.rs`/`lib.rs`/`Cargo.toml`/`e2e_stack`/`bacon.toml`) are canonical and
+> (`config.rs`/`lib.rs`/`Cargo.toml`/`integration_stack`/`bacon.toml`) are canonical and
 > self-sufficient; a cloned sibling's backend is an optional fuller example, not
 > required. Read one live for a worked example if it's checked out; pin nothing
 > from memory — prefer the latest crate versions.
@@ -74,12 +74,12 @@ then split `lib.rs.example` into the per-file modules above as the app grows.
 They use the pinned seam contract; don't invent alternative env names.
 
 - `Cargo.toml.example` — workspace skeleton: `[workspace]` (resolver 2, members
-  = `backend` + `e2e`) + the `[workspace.dependencies]` table.
+  = `backend` + `integration`) + the `[workspace.dependencies]` table.
 - `config.rs.example` — `Config` + `from_env()` (the four contract fields).
 - `lib.rs.example` — boot flow (dotenv → tracing → `Config::from_env` →
   `AppState` → router → serve) plus the `serve_spa` handler, `csp_layer()`, and
   the forward-auth `Auth` extractor with the `dev_auth` bypass.
-- `e2e_stack.rs.example` — the `Stack::start()` harness (spawn the binary, temp
+- `integration_stack.rs.example` — the `Stack::start()` harness (spawn the binary, temp
   SQLite, `DEV_AUTH=1`, poll `/status`, kill on `Drop`).
 - `bacon.toml.example` — the backend dev runner used by `just dev` (`default_job
 = run`, a `background` run job, `kill_then_restart`, `watch = [".env"]`).
@@ -169,7 +169,7 @@ form-action 'self'`. (`manifest-src 'self'` so the SPA's webmanifest loads —
   `/api/*` handler that 401s unless `X-Auth-Request-User` is present. **This
   check is bypassed when `cfg.dev_auth` is set — `DEV_AUTH=1` (local dev) OR
   `<APP>_OPEN=1` (a LAN-only deploy with no oauth2-proxy).** That single switch
-  is the linchpin: it's how `just dev`, the e2e harness, and a LAN deploy all
+  is the linchpin: it's how `just dev`, the integration harness, and a LAN deploy all
   reach `/api/*`. `/status` is always unauth.
 - **Service-to-service tokens:** load from env, never log. Constant-time compare
   with `subtle::ConstantTimeEq`. Bearer in `Authorization` header only (query
@@ -200,7 +200,7 @@ _where_ they live in a mono- vs single-app repo) is cross-cutting: see
     `/status` until up, kills children on `Drop`. Tests `#[ignore]` (they bind a
     port + spawn a process), run in CI via
     `cargo test -p <app>-integration -- --ignored`. (Harness ships in
-    `e2e_stack.rs.example`.) This is **integration, not e2e**: the backend is real,
+    `integration_stack.rs.example`.) This is **integration, not e2e**: the backend is real,
     the frontend is absent, and third-party HTTP upstreams are wiremocked — reserve
     "e2e" for a real-SPA-↔-real-backend suite.
 - **Mock HTTP upstreams** with `wiremock` (dev-dep) for a fan-in app — stub each

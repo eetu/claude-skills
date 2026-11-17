@@ -1,6 +1,6 @@
 ---
 name: lint-format
-description: Language-agnostic rule for tooling on every project — always wire up the standard formatter and linter for the language, run with defaults unless a project rule overrides, and keep the build at zero warnings (fix the code, or disable narrowly with a stated reason). Use when starting a project, adding files in a new language, or reviewing any code in any language (TS, Python, Rust, Go, shell, etc.). Language-specific configs layer on top — e.g. ts-style pins eslint+prettier via eslint-config. Ships an example .editorconfig (spaces, cross-language indentation/line-width) to copy into new repos.
+description: Language-agnostic rule for tooling on every project — always wire up the standard formatter and linter for the language, run with defaults unless a project rule overrides, and keep the build at zero warnings (fix the code, or disable narrowly with a stated reason). Use when starting a project, adding files in a new language, or reviewing any code in any language (TS, Python, Rust, Go, shell, etc.). Language-specific configs layer on top — e.g. ts-style pins Biome (biome-config) or eslint+prettier (eslint-config). Ships an example .editorconfig (spaces, cross-language indentation/line-width) to copy into new repos.
 user-invocable: true
 ---
 
@@ -19,8 +19,9 @@ part of the normal check (a `validate` / `check` / CI step). No project ships
 without them. Use the de-facto community tool unless a project rule says
 otherwise:
 
-- **TS/JS** — eslint + prettier (here: pinned by `eslint-config`, see
-  [[ts-style]])
+- **TS/JS** — Biome via `biome-config` for libraries, node and plain web;
+  eslint and prettier via `eslint-config` for Svelte apps and apps already on
+  it (see [[ts-style]])
 - **Python** — ruff (format + lint)
 - **Rust** — `cargo fmt` + `cargo clippy`
 - **Go** — `gofmt`/`goimports` + `go vet`
@@ -84,8 +85,8 @@ When you disable, do it narrowly and say why — scoped to the single line, the
 specific rule (never a bare/file-wide disable), always with a reason:
 
 ```ts
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- third-party
-// type is wrong upstream; cast is the seam, not a habit.
+// biome-ignore lint/suspicious/noExplicitAny: third-party type is wrong upstream;
+// the cast is the seam, not a habit.
 const parsed = raw as any;
 ```
 
