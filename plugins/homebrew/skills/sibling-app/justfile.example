@@ -52,6 +52,14 @@ build:
     {{yarn}} build
     cargo build --release --workspace
 
+# Full-debuginfo build for lldb/CodeLLDB → target/debugging/ (see rust-axum →
+# Disk budget). Drop it with `just clean-debug` when done.
+build-debug:
+    cargo build --profile debugging --workspace
+
+clean-debug:
+    cargo clean --profile debugging
+
 # Lint/format/typecheck across the repo.
 lint:
     {{yarn}} lint

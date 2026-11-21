@@ -74,7 +74,8 @@ then split `lib.rs.example` into the per-file modules above as the app grows.
 They use the pinned seam contract; don't invent alternative env names.
 
 - `Cargo.toml.example` — workspace skeleton: `[workspace]` (resolver 2, members
-  = `backend` + `integration`) + the `[workspace.dependencies]` table.
+  = `backend` + `integration`) + the `[workspace.dependencies]` table + the
+  disk-budget profiles.
 - `config.rs.example` — `Config` + `from_env()` (the four contract fields).
 - `lib.rs.example` — boot flow (dotenv → tracing → `Config::from_env` →
   `AppState` → router → serve) plus the `serve_spa` handler, `csp_layer()`, and
@@ -211,6 +212,33 @@ _where_ they live in a mono- vs single-app repo) is cross-cutting: see
 
 (The frontend has its own unit / component / e2e tiers now — see **spa-frontend →
 Testing**; the backend is no longer "where the test effort goes".)
+
+## Disk budget
+
+Cargo's default dev profile writes full debuginfo for every crate, deps
+included; that is most of a `target/` dir (one axum workspace measured 31 GB:
+20 GB `deps/`, 10 GB `incremental/`). Every workspace ships the profiles in
+`Cargo.toml.example`:
+
+- `dev`: `debug = "line-tables-only"` for workspace crates (panic backtraces keep
+  file:line), `debug = false` for deps.
+- `debugging`: `inherits = "dev"`, `debug = true`. Debugging is occasional, so it
+  is a separate profile rather than the default: `just build-debug` builds into
+  `target/debugging/`; point lldb / CodeLLDB at `target/debugging/<bin>`
+  (CodeLLDB: `"cargo": {"args": ["build", "--profile", "debugging"]}`). Deps
+  still have no debuginfo; stepping into a crate's internals needs
+  `[profile.debugging.package."*"] debug = true` added for that session.
+  `just clean-debug` drops the profile's output afterwards.
+- `release`: `strip = true`.
+
+The machine's `~/.cargo/config.toml` carries the same `dev`/`debugging` tables so
+repos outside the family get them too. Config profiles override `Cargo.toml`
+profiles, so a repo that needs full dev debuginfo by default sets it in its own
+`.cargo/config.toml`, not in `Cargo.toml`.
+
+Do not set a shared `CARGO_TARGET_DIR`: crates rebuild per feature set and
+version anyway, and one dir hides which repo holds the space. A dormant repo's
+`target/` goes with `cargo clean`.
 
 ## Container
 

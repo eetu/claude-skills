@@ -46,3 +46,20 @@ version = "3"           # dev-dep: temp SQLite + temp dist/ in the integration h
 
 [workspace.dependencies.wiremock]
 version = "0.6"         # dev-dep: stub HTTP upstreams for a fan-in app
+
+# Disk budget (see SKILL.md → Disk budget). Full dev debuginfo is most of a
+# target/ dir; panics still get file:line backtraces with line tables.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# Opt-in debugger build: `cargo build --profile debugging` → target/debugging/.
+# Full debuginfo for workspace crates only; deps stay without.
+[profile.debugging]
+inherits = "dev"
+debug = true
+
+[profile.release]
+strip = true
