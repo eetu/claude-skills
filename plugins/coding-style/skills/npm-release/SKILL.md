@@ -13,9 +13,9 @@ user-invocable: true
 
 ## As commits land
 
-- **Each commit adds its line to `CHANGELOG.md`'s `[Unreleased]`**, in the
-  [[brevity]] shape (`**name** — facts`). A release is then a date and a number,
-  not an archaeology session. The user doesn't release single fixes; a version
+- **Each commit adds its line to `CHANGELOG.md`'s `[Unreleased]`**, in its
+  group ([[changelog]]). A release is then a date and a number, not an
+  archaeology session. The user doesn't release single fixes; a version
   goes out when they ask.
 - **The version number, in 0.x**: patch for additions only; minor when an
   exported interface changes or the output does (a changed picture fingerprint

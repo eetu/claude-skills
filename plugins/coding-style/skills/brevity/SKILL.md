@@ -63,14 +63,12 @@ Scanned, not read. The goal is **fewer words, same information**.
   things a reviewer cannot infer from the diff — a breaking change, a decision
   with a live alternative, a measured result. Not a narrative, not a tour of the
   files, not a restatement of the diffstat.
-- **Changelog entries are `**name** — facts`, one to three lines each**: API
-  names, behaviours, defaults, budget or size changes. The _why it had to work
-  this way_ lives in code comments and internal docs, not the changelog.
-- **One-line release intro.** A release gets a single headline sentence, not a
-  paragraph restating the bullets below it.
+- **Changelog entries** are one or two lines of user-visible effect, in Keep a
+  Changelog groups; [[changelog]] has the structure and what stays out. The
+  _why it had to work this way_ lives in code comments and internal docs.
 - **Verbosity compounds across releases.** Each new entry mimics the tone of the
   one above it, so drift only ever ratchets up. Calibrate a new entry against
-  the repo's _earliest_ releases, not the latest.
+  the shortest good entries, not the latest.
 
 A verification result is information: keep the numbers, drop the adjectives.
 
